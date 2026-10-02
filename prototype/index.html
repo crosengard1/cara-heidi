@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#FCFAF8" />
+    <title>Heidi · Screen library</title>
+    <link rel="icon" href="./assets/heidi-symbol-bark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./assets/tokens.css" />
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./mobile-design-system.css?v=patient-context-14" />
+    <link rel="stylesheet" href="./assets/heidi-component-utilities.css?v=6" />
+    <link rel="stylesheet" href="./session-components.css?v=14" />
+    <script defer src="./assets/heidi-components.js?v=5"></script>
+    <script defer src="./assets/lucide.min.js"></script>
+    <script defer src="./app.js?v=patient-context-14"></script>
+    <script defer src="./screen-library.js?v=patient-context-14"></script>
+    <script defer src="./device-preview.js"></script>
+  </head>
+  <body>
+    <div class="demo-shell">
+      <aside id="screenLibrary" class="screen-library" aria-label="Screen library">
+        <header class="library-header"><div class="library-brand"><img src="./assets/heidi-symbol-bark.svg" alt="" /><span>Heidi</span></div><button type="button" class="library-close" aria-label="Hide screen library" data-action="toggle-library">×</button></header>
+        <div class="library-title">Screen library <span id="libraryCount"></span></div>
+        <input id="librarySearch" class="library-search" type="search" placeholder="Find a screen…" aria-label="Find a screen" />
+        <nav id="libraryScreens" class="library-screens" aria-label="Prototype screens"></nav>
+        <footer class="library-footer">Mobile · Light theme <span>Local prototype · Example data</span></footer>
+      </aside>
+      <button type="button" class="library-backdrop" data-action="toggle-library" aria-label="Close screen library" hidden></button>
+      <main class="device-stage">
+        <div class="preview-toolbar"><button id="libraryToggle" class="library-toggle" type="button" data-action="toggle-library" aria-controls="screenLibrary" aria-expanded="true">Screens</button><span id="previewLocation" class="preview-location">Today / Appointments</span><span class="preview-dimensions" title="iPhone 14 Pro logical screen size">393 × 852</span></div>
+        <div class="device-viewport">
+          <div class="phone-frame">
+            <div class="phone-screen">
+              <div class="phone-status" aria-hidden="true"><span>9:41</span><span class="dynamic-island"></span><span class="status-icons">●●● ▰</span></div>
+              <div id="app" class="app-root"></div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

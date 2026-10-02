@@ -1,0 +1,100 @@
+/* Mobile compositions around the unmodified Button and Typography components
+   supplied in Product – Design System. Sizes/type are generated from their source;
+   only layout and mobile surface treatments live here. */
+:where(.session-focused [data-slot="button"]) { border: 0; background: transparent; font-family: var(--font-family-inter); }
+.session-focused { color: var(--color-text-primary); }
+.session-focused .app-scroll { padding: 12px 16px 116px; scroll-padding-bottom: 116px; }
+.hui-type { margin: 0; font-family: var(--font-family-inter); }
+.hui-display { font-family: var(--font-family-exposure); }
+.hui-muted { color: var(--color-text-secondary); }
+.hui-button { flex-shrink: 0; }
+.hui-button svg { width: 20px; height: 20px; flex-shrink: 0; }
+.hui-circle { border-radius: var(--radius-3xl); background: var(--color-surface); box-shadow: var(--shadow-sm); }
+.hui-back { margin-left: -4px; }
+.hui-document-navigation { display: flex; align-items: center; gap: 2px; margin: 0 -4px 14px; }
+.hui-document-tabs { display: flex; gap: 4px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; padding: 2px 0 4px; }
+.hui-document-tabs::-webkit-scrollbar { display: none; }
+.hui-doc-tab { min-height: 44px; font-size: 14px; line-height: 20px; padding: 8px 12px; font-weight: 500; letter-spacing: normal; color: var(--color-text-secondary); background: transparent; }
+.hui-doc-tab svg { width: 16px; height: 16px; }
+.hui-doc-tab.is-active { background: var(--color-surface); color: var(--color-text-primary); box-shadow: var(--shadow-sm); }
+.hui-all-docs { background: transparent; box-shadow: none; color: var(--color-text-secondary); }
+.hui-session-tools { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 12px 4px 0; padding-top: 4px; border-top: 1px solid var(--color-border); }
+.hui-session-tools > div { display: flex; gap: 2px; }
+.hui-source-button { min-height: 44px; padding: 6px 8px; font-size: 14px; line-height: 20px; font-weight: 400; gap: 5px; }
+.hui-source-button svg { width: 16px; height: 16px; }
+.hui-create-button, .hui-all-docs { width: 44px; min-width: 44px; }
+.hui-source-button { color: var(--color-text-secondary); }
+.hui-source-button[aria-pressed="true"] { color: var(--color-text-primary); background: var(--color-background-secondary); border-radius: var(--radius-3xl); }
+.hui-create-button { color: var(--color-text-primary); }
+.hui-paper { background: var(--color-surface); border-radius: var(--radius-2xl); padding: 20px; min-height: 280px; }
+.hui-paper-heading { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 20px; }
+.hui-paper-heading > div { flex: 1; min-width: 0; }
+.hui-paper-heading .hui-muted { margin-top: 6px; }
+.hui-paper-menu { margin: -10px -12px 0 0; color: var(--color-text-secondary); }
+.hui-note-content { overflow-wrap: anywhere; }
+.hui-note-section + .hui-note-section { margin-top: 20px; }
+.hui-note-section > .hui-type:first-child { margin-bottom: 8px; }
+.hui-note-paragraph { white-space: pre-line; }
+.hui-note-content > .hui-note-paragraph + .hui-note-paragraph { margin-top: 20px; }
+.hui-paper-footer { display: flex; gap: 8px; align-items: center; padding-top: 28px; }
+.hui-paper-footer svg { width: 16px; height: 16px; color: var(--color-text-secondary); }
+.session-focused .ask-shell { bottom: 16px; padding: 8px 16px; }
+.session-focused .ask-add { display: grid; }
+.session-focused .ask-bar { height: 52px; border-radius: var(--radius-3xl); background: var(--mobile-glass); border: 1px solid var(--color-surface); }
+.session-focused .ask-open img { display: none; }
+.session-focused .ask-open { padding-left: 20px; }
+.hui-overlay { background: color-mix(in srgb, var(--color-text-primary) 20%, transparent); }
+.hui-sheet { width: 100%; max-height: calc(100% - 16px); overflow-y: auto; scrollbar-width: none; background: var(--color-surface-page); border-radius: var(--radius-3xl) var(--radius-3xl) 0 0; padding: 12px 20px 28px; box-shadow: var(--shadow-lg); }
+.hui-handle { width: 36px; height: 4px; margin: 0 auto 24px; background: var(--color-border); border-radius: var(--radius-xs); }
+.hui-sheet-heading { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 24px; }
+.hui-sheet-heading > div { flex: 1; min-width: 0; }
+.hui-sheet-heading .hui-muted { margin-top: 8px; }
+.hui-sheet-heading .hui-circle { margin-top: -4px; background: var(--color-surface); box-shadow: none; }
+.hui-document-list, .hui-action-group { background: var(--color-surface); border-radius: var(--radius-2xl); padding: 4px 16px; }
+.hui-document-row { display: flex; width: 100%; height: auto; min-height: 84px; padding: 16px 0; gap: 12px; text-align: left; white-space: normal; justify-content: flex-start; border-radius: 0; background: transparent; }
+.hui-document-row + .hui-document-row { border-top: 1px solid var(--color-border); }
+.hui-document-row[aria-current="true"] { background: transparent; }
+.hui-document-row:hover { background: var(--color-surface-hover); }
+.hui-document-symbol { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: var(--radius-lg); background: var(--color-background-tertiary); color: var(--color-text-secondary); }
+.hui-document-symbol svg { width: 20px; height: 20px; }
+.hui-row-copy { flex: 1; min-width: 0; display: block; }
+.hui-row-copy .hui-type:first-child { overflow-wrap: anywhere; }
+.hui-row-copy .hui-muted { margin-top: 4px; }
+.hui-selected-check { display: flex; align-items: center; justify-content: center; width: 24px; flex: none; color: var(--color-text-primary); }
+.hui-selected-check svg { width: 20px; height: 20px; }
+.hui-sheet-footer { padding-top: 24px; }
+.hui-template-list { padding: 4px 16px; margin: 0; border: 0; background: var(--color-surface); border-radius: var(--radius-2xl); }
+.hui-template-option { display: flex; align-items: center; gap: 12px; min-height: 84px; padding: 16px 0; cursor: pointer; }
+.hui-template-option + .hui-template-option { border-top: 1px solid var(--color-border); }
+.hui-template-option input { appearance: auto; width: 20px; height: 20px; flex: none; margin: 0; accent-color: var(--color-background-primary); }
+.hui-template-option:focus-within { outline: 2px solid var(--color-border-focus); outline-offset: 3px; border-radius: var(--radius-lg); }
+.hui-context-source { display: flex; align-items: center; gap: 12px; padding: 20px 4px 0; }
+.hui-context-source svg { width: 20px; height: 20px; color: var(--color-text-secondary); }
+.hui-context-source .hui-muted { margin-bottom: 4px; }
+.hui-prototype-note { text-align: center; margin-top: 12px; }
+.hui-form label { display: block; margin-top: 20px; }
+.hui-form label:first-child { margin-top: 0; }
+.hui-form input, .hui-form textarea { display: block; width: 100%; border: 1px solid var(--color-border); border-radius: var(--radius-xl); padding: 14px 16px; margin-top: 8px; background: var(--color-surface); color: var(--color-text-primary); font: inherit; line-height: 1.5; resize: vertical; }
+.hui-action-row { width: 100%; height: 60px; justify-content: flex-start; border-radius: 0; }
+.hui-action-row + .hui-action-row { border-top: 1px solid var(--color-border); }
+.hui-transcript-turn > header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.hui-dictation-context { margin-top: 28px; }
+.hui-dictation-context .hui-note-paragraph { margin: 8px 0 16px; }
+.hui-sheet .context-card { background: var(--color-surface); border-radius: var(--radius-2xl); padding: 0 16px; }
+.hui-sheet .context-row { padding: 20px 0; }
+.hui-sheet .session-related-list { background: var(--color-surface); border-radius: var(--radius-2xl); padding: 0 16px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+@media (prefers-reduced-motion: reduce) { .hui-session *, .hui-sheet * { transition: none !important; scroll-behavior: auto !important; } }
+
+.hui-session-context { padding: 16px; background: var(--color-surface); border-radius: var(--radius-2xl); }
+.hui-session-context .hui-muted { margin-top: 6px; }
+.hui-new-session-actions { display: grid; gap: 8px; margin-top: 20px; }
+
+.hui-document-title { font-size: 16px; line-height: 24px; }
+.hui-dictation-sheet .hui-sheet-heading .hui-display { font: 500 22px/1.25 var(--font-family-inter); letter-spacing: -.025em; }
+.hui-dictation-for { padding: 12px 16px; border-radius: var(--radius-xl); background: var(--color-surface); }
+.hui-dictation-for .hui-muted { margin-top: 4px; }
+.hui-dictation-capture { text-align: center; padding: 24px 16px 4px; }
+.hui-dictation-capture > svg { width: 32px; height: 32px; margin: 0 auto 12px; color: var(--color-text-secondary); }
+.hui-dictation-capture .hui-muted { margin-top: 8px; }
+.hui-dictation-action { min-height: 44px; font-size: 15px; line-height: 20px; }
