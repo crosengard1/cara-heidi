@@ -1,0 +1,6 @@
+/* Only the preview shell changes; the 393 x 852 app uses shared prototype code. */
+html,body{width:100%;height:100%;overflow:hidden;background:transparent}
+.screen-library,.library-backdrop,.preview-toolbar,.site-nav{display:none}
+.demo-shell,.demo-shell.library-collapsed{display:block;min-height:0;height:100%;background:transparent}
+.device-stage{display:block;width:100%;height:100%;padding:0;overflow:hidden;background:transparent}
+.device-viewport{width:100%;height:100%}
