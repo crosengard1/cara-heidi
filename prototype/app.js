@@ -380,10 +380,11 @@ function renderDocumentBody(body) {
 function renderSession() {
   const s = session(state.sessionId);
   const docs = sessionDocuments(s), doc = activeDocument(s), source = s.workspaceView === 'source';
-  const tabs = [['documents','Documents' + (docs.length ? ' · ' + docs.length : '')],['source','Transcript']].map(([id,label]) => huiButton(label, 'session-view', {size:'sm',role:'tab',id:'session-tab-' + id,'aria-controls':'sessionContentPanel','aria-selected':source === (id === 'source'),tabIndex:source === (id === 'source') ? 0 : -1,'data-id':id,variant:'ghost',className:'hui-workspace-tab' + (source === (id === 'source') ? ' is-active' : '')})).join('');
-  const documentPicker = doc ? HeidiUI.button('<span>' + esc(doc.title) + '</span>' + icon('down'), {type:'button',variant:'ghost',className:'hui-button hui-document-picker','data-action':'open-documents','aria-haspopup':'dialog','aria-label':'Choose document: ' + doc.title}) : huiText('PBold','Your first document');
-  const noteBody = doc ? '<article class="hui-paper"><header class="hui-paper-heading"><div>' + documentPicker + huiText('Caption','Draft · ' + (doc.edited ? 'Edited' : 'Ready to review'),'hui-muted') + '</div>' + huiButton('Document actions','document-actions',{glyph:'more',iconOnly:true,'aria-haspopup':'dialog',className:'hui-paper-menu'}) + '</header><div class="hui-note-content">' + (doc.body ? renderDocumentBody(doc.body) : huiText('P','This document is blank. Open document actions to start writing.','hui-muted')) + '</div><footer class="hui-paper-footer">' + icon('waves') + huiText('Caption','From this session','hui-muted') + '</footer></article>' : '<article class="hui-paper hui-empty-document">' + huiText('H4','Your first document') + huiText('P','Create a note from this session.','hui-muted') + huiButton('Create document','new-document',{glyph:'plus',variant:'secondary','aria-haspopup':'dialog'}) + '</article>';
-  return '<section class="hui-session">' + topbar('Session',true) + renderPatientContext(s.patientId,s.encounterId,{session:s}) + '<div class="hui-workspace-navigation"><div class="hui-workspace-tabs" role="tablist" aria-label="Session content">' + tabs + '</div>' + (source ? huiButton('Dictate','dictate-session',{glyph:'mic',size:'sm',variant:'ghost','aria-haspopup':'dialog',className:'hui-source-button'}) : huiButton('Document','new-document',{glyph:'plus',size:'sm',variant:'ghost','aria-label':'Create document','aria-haspopup':'dialog',className:'hui-source-button'})) + '</div><div role="tabpanel" id="sessionContentPanel" aria-labelledby="session-tab-' + (source ? 'source' : 'documents') + '">' + (source ? renderSessionSource(s) : noteBody) + '</div></section>';
+  const tabs = docs.map(d => huiButton(d.title,'select-document',{size:'sm',role:'tab',id:'doc-tab-' + d.id,'aria-controls':'sessionContentPanel','aria-selected':!source && doc?.id === d.id,tabIndex:!source && doc?.id === d.id ? 0 : -1,'data-id':d.id,variant:'ghost',className:'hui-workspace-tab' + (!source && doc?.id === d.id ? ' is-active' : '')})).join('') + huiButton('Transcript','session-view',{size:'sm',role:'tab',id:'session-tab-source','aria-controls':'sessionContentPanel','aria-selected':source,tabIndex:source || !docs.length ? 0 : -1,'data-id':'source',variant:'ghost',className:'hui-workspace-tab hui-transcript-tab' + (source ? ' is-active' : '')});
+  const documentTitle = doc ? huiText('PBold',esc(doc.title),'hui-document-title',{role:'heading','aria-level':2}) : '';
+  const noteBody = doc ? '<article class="hui-paper"><header class="hui-paper-heading"><div>' + documentTitle + huiText('Caption','Draft · ' + (doc.edited ? 'Edited' : 'Ready to review'),'hui-muted') + '</div>' + huiButton('Document actions','document-actions',{glyph:'more',iconOnly:true,'aria-haspopup':'dialog',className:'hui-paper-menu'}) + '</header><div class="hui-note-content">' + (doc.body ? renderDocumentBody(doc.body) : huiText('P','This document is blank. Open document actions to start writing.','hui-muted')) + '</div><footer class="hui-paper-footer">' + icon('waves') + huiText('Caption','From this session','hui-muted') + '</footer></article>' : '<article class="hui-paper hui-empty-document">' + huiText('H4','Your first document') + huiText('P','Create a note from this session.','hui-muted') + huiButton('Create document','new-document',{glyph:'plus',variant:'secondary','aria-haspopup':'dialog'}) + '</article>';
+  return '<section class="hui-session">' + topbar('Session',true) + renderPatientContext(s.patientId,s.encounterId,{session:s}) + '<div class="hui-workspace-navigation"><div class="hui-workspace-tabs" role="tablist" aria-label="Session documents and transcript">' + tabs + '</div>' + huiButton('Create document','new-document',{glyph:'plus',iconOnly:true,variant:'ghost','aria-haspopup':'dialog',className:'hui-add-document'}) + '</div><div role="tabpanel" id="sessionContentPanel"' + (source || doc ? ' aria-labelledby="' + (source ? 'session-tab-source' : 'doc-tab-' + esc(doc.id)) + '"' : ' aria-label="Documents"') + '>' + (source ? renderSessionSource(s) : noteBody) + '</div></section>';
+
 }
 function renderDocumentActions() {
   const d = activeDocument(session(state.sessionId));
@@ -432,7 +433,7 @@ function renderEditDocument() {
 }
 function renderSessionSource(s) {
   const transcript = s.transcript || (s.id === 's-linda-1' ? [{speaker:'Clinician',time:'00:00',text:'Linda’s oxygen requirement is improving. We’ll review the morning results and reassess the discharge plan with Linda and her family.'}] : []);
-  return '<section class="hui-paper"><header class="hui-paper-heading"><div>' + huiText('PBold','Transcript', 'hui-document-title', {role:'heading','aria-level':2}) + huiText('Caption','Session source','hui-muted') + '</div>' + icon('waves') + '</header>' + (transcript.length ? transcript.map(t => '<section class="hui-transcript-turn"><header>' + huiText('P2Bold',t.speaker) + huiText('Caption',t.time,'hui-muted') + '</header>' + huiText('P',t.text) + '</section>').join('') : huiText('P','No transcript captured for this session.','hui-muted')) + '<section class="hui-dictation-context">' + huiText('PBold','Dictation') + huiText('P',s.dictation || 'No additional dictation yet.','hui-note-paragraph') + '</section></section>';
+  return '<section class="hui-paper"><header class="hui-paper-heading"><div>' + huiText('PBold','Transcript', 'hui-document-title', {role:'heading','aria-level':2}) + huiText('Caption','Session source','hui-muted') + '</div>' + huiButton('Dictate','dictate-session',{glyph:'mic',size:'sm',variant:'ghost','aria-haspopup':'dialog',className:'hui-source-button'}) + '</header>' + (transcript.length ? transcript.map(t => '<section class="hui-transcript-turn"><header>' + huiText('P2Bold',t.speaker) + huiText('Caption',t.time,'hui-muted') + '</header>' + huiText('P',t.text) + '</section>').join('') : huiText('P','No transcript captured for this session.','hui-muted')) + '<section class="hui-dictation-context">' + huiText('PBold','Dictation') + huiText('P',s.dictation || 'No additional dictation yet.','hui-note-paragraph') + '</section></section>';
 }
 function renderSessionDetails() {
   const s = session(state.sessionId), p = s.patientId && patients[s.patientId], candidate = encounters[s.encounterId], e = candidate?.patientId === s.patientId ? candidate : null;
@@ -541,7 +542,8 @@ function render() {
     document.querySelectorAll('#app > .app-scroll, #app > .ask-shell').forEach(el => { el.inert = true; });
     if (!isEmbeddedPreview) activeSheet.querySelector('button, input, textarea')?.focus({ preventScroll: true });
   }
-  if (!isEmbeddedPreview) document.querySelector('.document-tabs [aria-selected="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  const selectedTab = document.querySelector('.hui-workspace-tabs [aria-selected="true"]');
+  if (selectedTab) { const strip = selectedTab.parentElement; strip.scrollLeft = Math.max(0, selectedTab.offsetLeft - Math.max(0, (strip.clientWidth - selectedTab.offsetWidth) / 2)); }
   updateTicker();
   document.dispatchEvent(new Event('prototype-render'));
 }
@@ -609,7 +611,7 @@ document.addEventListener('click', ev => {
     state.modal = a === 'open-documents' ? 'documents' : a; render();
     document.querySelector('.hui-sheet button, .sheet button')?.focus(); return;
   }
-  if (a === 'select-document') { const s = session(state.sessionId); s.activeDocumentId = id; s.workspaceView = 'documents'; state.modal = null; save(); render(); return; }
+  if (a === 'select-document') { const s = session(state.sessionId); s.activeDocumentId = id; s.workspaceView = 'documents'; state.modal = null; save(); render(); document.getElementById('doc-tab-' + id)?.focus({preventScroll:true}); return; }
   if (state.modal === 'session-details' && ['open-history', 'open-encounter', 'open-session'].includes(a)) state.modal = null;
   if (a === 'open-session-details') {
     const scrollTop = document.querySelector('.app-scroll').scrollTop;
@@ -827,9 +829,7 @@ document.addEventListener('keydown', ev => {
   const tabs = [...document.querySelectorAll('.hui-workspace-tabs [role="tab"]')];
   const index = tabs.indexOf(ev.target);
   const next = ev.key === 'Home' ? 0 : ev.key === 'End' ? tabs.length - 1 : (index + (ev.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
-  const id = tabs[next].dataset.id;
-  session(state.sessionId).workspaceView = id; render();
-  document.getElementById('session-tab-' + id)?.focus({ preventScroll: true });
+  tabs[next].click();
 });
 
 document.addEventListener('keydown', ev => {

@@ -19,13 +19,12 @@
 .hui-session .patient-context-session { margin-top: 8px; padding-top: 8px; }
 .patient-session-label { color: var(--color-text-secondary); font-weight: 400; }
 .hui-workspace-navigation { display: flex; align-items: center; justify-content: space-between; gap: 4px; margin: 0 0 12px; }
-.hui-workspace-tabs { display: flex; min-width: 0; align-items: center; gap: 2px; }
+.hui-workspace-tabs { position: relative; display: flex; flex: 1; min-width: 0; align-items: center; gap: 4px; overflow-x: auto; scrollbar-width: thin; scrollbar-color: var(--color-border) transparent; padding: 2px 0 6px; }
+.hui-add-document { width: 44px; height: 44px; flex: none; }
+.hui-transcript-tab { margin-left: 8px; }
 .hui-workspace-tab { min-height: 44px; padding: 8px 12px; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--color-text-secondary); border-radius: var(--radius-3xl); }
 .hui-workspace-tab.is-active { background: var(--color-surface); color: var(--color-text-primary); box-shadow: var(--shadow-sm); }
 .hui-source-button { min-height: 44px; padding: 6px 8px; font-size: 14px; line-height: 20px; font-weight: 400; gap: 5px; color: var(--color-text-secondary); }
-.hui-document-picker { max-width: 100%; min-height: 44px; height: auto; padding: 8px 0; gap: 8px; margin-top: -8px; justify-content: flex-start; white-space: normal; text-align: left; font-size: 16px; line-height: 24px; font-weight: 600; }
-.hui-document-picker span { min-width: 0; overflow-wrap: anywhere; }
-.hui-document-picker svg { width: 16px; height: 16px; }
 .hui-empty-document > * + * { margin-top: 16px; }
 .hui-paper { background: var(--color-surface); border-radius: var(--radius-2xl); padding: 20px; min-height: 280px; }
 .hui-paper-heading { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 20px; }
