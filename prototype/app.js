@@ -66,6 +66,12 @@ const workItems = [
 // Embedded guide examples use temporary state and never read or overwrite saved records.
 const isEmbeddedPreview = document.documentElement.hasAttribute('data-embedded-preview');
 const stored = (() => { if (isEmbeddedPreview) return null; try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch { return null; } })();
+// Fictional clinician-curated examples; these fields belong to the patient, not a session.
+const patientDetails = {
+  linda: { context: 'Respiratory follow-up. Admitted with pneumonia; oxygen needs are improving. Review results and reassess discharge with Linda and her family.', history: 'Previous respiratory review in August 2026.', additionalNotes: 'Include Linda and her family in discharge planning.' },
+  amelia: { context: 'General practice follow-up after her initial consultation. Review symptom progress and agree the next steps.', history: 'Initial consultation in June 2026.' },
+  ...(stored && stored.patientDetails || {})
+};
 const customPatients = stored && stored.patients && !Array.isArray(stored.patients) ? stored.patients : {};
 const customEncounters = stored && stored.encounters && !Array.isArray(stored.encounters) ? stored.encounters : {};
 const customWorkItems = Array.isArray(stored && stored.workItems) ? stored.workItems : [];
@@ -168,9 +174,9 @@ function renderPatientContext(patientId, encounterId, options = {}) {
   const identity = p ? '<dl class="patient-context-fields">' + field('DOB',p.dob) + field('Heidi patient ID',p.identifier) + '</dl>' : '<p class="patient-context-empty">Patient not assigned</p>';
   const encounter = e ? '<dl class="patient-context-fields patient-context-encounter">' + field('Heidi encounter ID', e.identifier) + field(e.kind === 'Inpatient encounter' ? 'Admitted' : 'Encounter start',encounterStartLabel(e)) + '<div class="patient-context-location"><dt class="visually-hidden">Location and care type</dt><dd>' + esc(e.location || encounterTypeLabel(e)) + (e.location ? ' · ' + esc(encounterTypeLabel(e)) : '') + '</dd></div></dl>' : options.session ? '<p class="patient-context-empty">Encounter not assigned</p>' : '';
   const sessionLine = options.session ? '<div class="patient-context-session"><span><span class="patient-session-label">Session · </span>' + esc(options.session.title || 'Untitled') + '</span><time>' + esc(sessionDateTimeLabel(options.session)) + '</time></div>' : '';
-  return '<section class="patient-context' + (options.compact ? ' patient-context-compact' : ' patient-context-sticky screen-heading') + '" aria-label="Patient verification"><' + tag + '>' + esc(p ? p.name : 'Unassigned session') + '</' + tag + '>' + identity + encounter + sessionLine + '</section>';
+  return '<section class="patient-context' + (options.compact ? ' patient-context-compact' : ' patient-context-sticky screen-heading') + '" aria-label="Patient verification"><div class="patient-title-row"><' + tag + '>' + esc(p ? p.name : 'Unassigned session') + '</' + tag + '>' + (options.scribe ? huiButton('Start Scribe for ' + p.name, 'patient-scribe', {glyph:'waves', iconOnly:true, className:'patient-scribe'}) : '') + '</div>' + identity + encounter + sessionLine + '</section>';
 }
-function save() { if (isEmbeddedPreview) return; localStorage.setItem(STORAGE_KEY, JSON.stringify({ sessions: state.sessions, patients: customPatients, encounters: customEncounters, workStatuses: state.workStatuses, workItems: customWorkItems })); }
+function save() { if (isEmbeddedPreview) return; localStorage.setItem(STORAGE_KEY, JSON.stringify({ patientDetails, sessions: state.sessions, patients: customPatients, encounters: customEncounters, workStatuses: state.workStatuses, workItems: customWorkItems })); }
 function syncManualEncounterLists() {
   appointmentPlan.splice(0, appointmentPlan.length, ...appointmentPlan.filter(item => !item.manual));
   wardPlan.splice(0, wardPlan.length, ...wardPlan.filter(item => !item.manual));
@@ -334,18 +340,34 @@ function renderEncounter() {
   ].join('');
 }
 function renderHistory() {
-  const p = patients[state.patientId], es = encountersForPatient(state.patientId), loose = sessionsForPatientWithoutEncounter(state.patientId);
-  return [
-    topbar('Patient history'),
-    renderPatientContext(state.patientId, null),
-    '<div class="inline-notice">A view of sessions and encounters recorded in Heidi. EHR history outside Heidi is not shown.</div>',
-    loose.length ? '<div class="section-heading"><h2>Sessions without an encounter</h2><span>' + loose.length + '</span></div><div class="card">' + loose.map(s => '<button type="button" class="history-row" data-action="open-session" data-id="' + esc(s.id) + '"><span class="avatar blue">' + icon('waves') + '</span><span class="row-main"><span class="row-title">' + esc(s.title) + '</span><span class="row-sub">' + esc(s.date) + '</span></span><span class="row-arrow">' + icon('chevron') + '</span></button>').join('') + '</div>' : '',
-    '<div class="section-heading"><h2>Encounters over time</h2><span>' + es.length + '</span></div>',
-    es.length ? '<div class="card">' + es.map(([id, e]) => {
-      const ss = sessionsForEncounter(id);
-      return '<section class="history-group"><div class="history-top"><div><h3>' + esc(e.title) + '</h3><p>Encounter ID ' + esc(e.identifier) + '</p><p>Started ' + esc(encounterStartLabel(e)) + ' · ' + esc(encounterTypeLabel(e)) + '</p>' + (e.location ? '<p>' + esc(e.location) + '</p>' : '') + '</div>' + pill(e.status, e.status === 'Complete' ? 'sand' : 'green') + '</div><div class="row-meta"><button type="button" class="text-action" data-action="open-encounter" data-id="' + id + '">Open encounter ' + icon('chevron') + '</button></div><div class="history-sessions">' + (ss.length ? ss.map(s => '<button type="button" data-action="open-session" data-id="' + esc(s.id) + '"><strong>' + esc(s.title) + '</strong><span>' + esc(s.date) + ' · View session and note</span></button>').join('') : '<div class="empty-history">No session recorded yet</div>') + '</div></section>';
-    }).join('') + '</div>' : '<div class="today-empty">No encounter has been created for this patient yet.</div>'
-  ].join('');
+  const p = patients[state.patientId], details = patientDetails[state.patientId] || {}, es = encountersForPatient(state.patientId);
+  return topbar('Patient') + renderPatientContext(state.patientId, null, {scribe:true}) +
+    '<section class="patient-overview"><div class="patient-section-title"><h2>Patient context</h2>' + huiButton(details.context ? 'Edit context' : 'Add context','edit-patient-context',{variant:'ghost',size:'sm'}) + '</div>' +
+    '<p class="patient-context-copy' + (details.context?.length > 220 && state.expandedContextPatient !== state.patientId ? ' patient-context-clamped' : '') + '" id="patientContextText">' + esc(details.context || 'Add why you see this patient and what matters for their ongoing care.') + '</p>' + (details.context?.length > 220 ? huiButton(state.expandedContextPatient === state.patientId ? 'Show less' : 'Read more','toggle-patient-context',{variant:'ghost',size:'sm','aria-expanded':state.expandedContextPatient === state.patientId,'aria-controls':'patientContextText'}) : '') + '<p class="patient-provenance">Clinician-managed · Saved with patient</p></section>' +
+    '<button type="button" class="patient-details-link" data-action="patient-details"><span><strong>Patient details</strong><small>History, medications, allergies and more</small></span>' + icon('chevron') + '</button>' +
+    '<div class="section-heading"><h2>Encounter</h2><span>' + es.length + '</span></div>' +
+    (es.length ? '<div class="card patient-encounters">' + es.map(([id,e]) => '<button type="button" class="patient-encounter-row" data-action="open-encounter" data-id="' + esc(id) + '"><span class="row-main"><span class="patient-encounter-type">' + esc(encounterTypeLabel(e)) + ' · ' + esc(e.status) + '</span><strong>' + esc(e.title) + '</strong><span class="row-sub">' + esc(encounterStartLabel(e)) + ' · ' + esc(e.identifier) + '</span><span class="row-sub">' + esc(e.location || 'Location not added') + ' · ' + sessionsForEncounter(id).length + (sessionsForEncounter(id).length === 1 ? ' session' : ' sessions') + '</span></span>' + icon('chevron') + '</button>').join('') + '</div>' : '<div class="today-empty">No encounters yet. Start Scribe or add an encounter from +.</div>');
+}
+function renderPatientDetails() {
+  const p = patients[state.patientId], d = patientDetails[state.patientId] || {};
+  const items = [['Date of birth',p.dob],['Heidi patient ID',p.identifier],['Gender',d.gender],['Email',d.email],['Phone',d.phone],['Medical history',d.history],['Medications',d.medications],['Allergies',d.allergies],['Additional notes',d.additionalNotes]];
+  return huiSheet('Patient details',p.name,'<p class="patient-provenance">Saved with this patient in Heidi</p><dl class="patient-detail-list">' + items.map(([label,value]) => '<div><dt>' + esc(label) + '</dt><dd>' + esc(value || 'Not recorded') + '</dd></div>').join('') + '</dl><div class="patient-sheet-actions">' + huiButton('Edit details','edit-patient-details',{variant:'secondary'}) + '</div>','patient-detail-sheet');
+}
+function renderPatientContextEdit() {
+  const p = patients[state.patientId], d = patientDetails[state.patientId] || {};
+  return huiSheet('Patient context',p.name,'<form id="patientContextForm" class="hui-form"><label>Why I see this patient and what matters<textarea name="context" rows="5" maxlength="1200" placeholder="Reason for care, current situation and useful preferences">' + esc(d.context || '') + '</textarea></label><p class="patient-provenance">Saved with the patient, independently of session notes.</p><div class="patient-sheet-actions">' + huiButton('Cancel','close-modal',{variant:'ghost'}) + huiButton('Save context','',{type:'submit',variant:'secondary'}) + '</div></form>','patient-context-sheet');
+}
+function patientDobInput(p) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(p.dob || '')) return p.dob;
+  const m = (p.dob || '').match(/^(\d{1,2}) ([A-Za-z]{3}) (\d{4})$/);
+  const month = m && ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(m[2]);
+  return m && month >= 0 ? m[3] + '-' + String(month + 1).padStart(2,'0') + '-' + m[1].padStart(2,'0') : '';
+}
+function renderPatientDetailsEdit() {
+  const p = patients[state.patientId], d = patientDetails[state.patientId] || {};
+  const input = (label,name,value,type='text',required=false) => '<label>' + label + '<input name="' + name + '" type="' + type + '" value="' + esc(value || '') + '"' + (required ? ' required' : '') + ' /></label>';
+  const fields = [['Medical history','history'],['Medications','medications'],['Allergies','allergies'],['Additional notes','additionalNotes']];
+  return huiSheet('Edit patient details',p.name,'<form id="patientDetailsForm" class="hui-form">' + input('Full name','name',p.name,'text',true) + input('Date of birth','dob',patientDobInput(p),'date') + input('Gender','gender',d.gender) + input('Email','email',d.email,'email') + input('Phone','phone',d.phone,'tel') + fields.map(([label,key]) => '<label>' + label + '<textarea name="' + key + '" rows="2">' + esc(d[key] || '') + '</textarea></label>').join('') + '<p class="patient-provenance">Changes are saved to the Heidi profile. They do not update the EHR.</p><div class="patient-sheet-actions">' + huiButton('Cancel','patient-details',{variant:'ghost'}) + huiButton('Save details','',{type:'submit',variant:'secondary'}) + '</div></form>','patient-detail-sheet');
 }
 function sessionDocuments(s) {
   if (!s.documents) {
@@ -534,7 +556,7 @@ let ticker = null;
 function updateTicker() { clearInterval(ticker); if (state.recording && !state.paused) ticker = setInterval(() => { const el = document.getElementById('recordTime'); if (el) el.textContent = formatElapsed(); }, 500); }
 function render() {
   const pages = { today: renderToday, worklist: renderWorklist, sessions: renderSessions, tasks: renderTasks, patients: renderPatients, encounter: renderEncounter, history: renderHistory, session: renderSession, record: renderRecord, search: renderSearch };
-  const modals = { 'new-session-context': renderNewSessionContext, 'document-actions': renderDocumentActions, 'dictate-session': renderSessionDictation, 'documents': renderDocumentPicker, 'new-document': renderNewDocument, 'edit-document': renderEditDocument, 'session-details': renderSessionDetails, 'patient-picker': renderPatientPicker, 'new-patient': renderNewPatient, 'encounter-picker': renderEncounterPicker, 'new-encounter': renderNewEncounter, 'quick-add': renderQuickAdd, 'encounter-patient': renderEncounterPatientPicker, 'new-work': renderNewWork };
+  const modals = { 'patient-details':renderPatientDetails, 'edit-patient-details':renderPatientDetailsEdit, 'edit-patient-context':renderPatientContextEdit, 'new-session-context': renderNewSessionContext, 'document-actions': renderDocumentActions, 'dictate-session': renderSessionDictation, 'documents': renderDocumentPicker, 'new-document': renderNewDocument, 'edit-document': renderEditDocument, 'session-details': renderSessionDetails, 'patient-picker': renderPatientPicker, 'new-patient': renderNewPatient, 'encounter-picker': renderEncounterPicker, 'new-encounter': renderNewEncounter, 'quick-add': renderQuickAdd, 'encounter-patient': renderEncounterPatientPicker, 'new-work': renderNewWork };
   document.getElementById('app').classList.toggle('session-focused', state.screen === 'session');
   document.getElementById('app').innerHTML = '<div class="app-scroll">' + pages[state.screen]() + '</div>' + (state.screen === 'session' ? '' : nav()) + askBar() + (state.recording && state.screen !== 'record' ? '<button type="button" class="mini-player" data-action="return-record">' + icon('waves') + '<span>Recording in progress</span><strong>' + formatElapsed() + '</strong></button>' : '') + (modals[state.modal] ? modals[state.modal]() : '') + (state.chatOpen ? renderChat() : '') + (state.toast ? '<div class="toast" role="status">' + esc(state.toast) + '</div>' : '');
   const activeSheet = document.querySelector('.hui-sheet');
@@ -591,6 +613,12 @@ function newSession(encounterId, patientId = null) {
   navigate('record', { sessionId: id, encounterId: encounterId || null, patientId: patientId });
 }
 function closeCurrentModal() {
+    if (['patient-details','edit-patient-details','edit-patient-context'].includes(state.modal)) {
+      const action = state.modal === 'edit-patient-context' ? 'edit-patient-context' : 'patient-details';
+      const scroll = document.querySelector('.app-scroll').scrollTop;
+      state.modal = null; render(); document.querySelector('.app-scroll').scrollTop = scroll;
+      document.querySelector('[data-action="' + action + '"]')?.focus({preventScroll:true}); return;
+    }
     const documentReturn = {documents:'open-documents','new-document':'new-document','edit-document':'document-actions','document-actions':'document-actions'}[state.modal];
     const wasSessionDetails = state.modal === 'session-details', wasDictation = state.modal === 'dictate-session';
     const scrollTop = document.querySelector('.app-scroll').scrollTop;
@@ -603,6 +631,16 @@ document.addEventListener('click', ev => {
   const target = ev.target.closest('[data-action]');
   if (!target) return;
   const a = target.dataset.action, id = target.dataset.id;
+  if (['patient-details','edit-patient-details','edit-patient-context'].includes(a)) { state.modal = a; render(); return; }
+  if (a === 'toggle-patient-context') { state.expandedContextPatient = state.expandedContextPatient === state.patientId ? null : state.patientId; render(); document.querySelector('[data-action="toggle-patient-context"]')?.focus({preventScroll:true}); return; }
+  if (a === 'patient-scribe') {
+    if (state.recording) { toast('Finish your current recording first.'); return; }
+    const stamp = Date.now(), id = 'manual-e-' + stamp, now = new Date(stamp);
+    const startedAt = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0') + 'T' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+    const encounter = {patientId:state.patientId,identifier:'HE-' + String(stamp).slice(-8),title:'Ad hoc appointment',kind:'Appointment encounter',date:prettyDate(startedAt.slice(0,10)),startedAt,source:'Heidi',location:'',status:'Active',sort:Number(startedAt.slice(0,10).replaceAll('-',''))};
+    encounters[id] = encounter; customEncounters[id] = encounter; syncManualEncounterLists(); newSession(id); return;
+  }
+
   if (a === 'close-modal' && target.classList.contains('sheet-backdrop') && ev.target !== target) return;
   if (a === 'session-view') { session(state.sessionId).workspaceView = id; render(); document.getElementById('session-tab-' + id)?.focus({preventScroll:true}); return; }
   if (a === 'begin-dictation' || a === 'stop-dictation') { state.dictationPhase = a === 'begin-dictation' ? 'capturing' : 'review'; render(); document.querySelector(state.dictationPhase === 'review' ? '#sessionDictation' : '[data-action="stop-dictation"]')?.focus({preventScroll:true}); return; }
@@ -715,6 +753,21 @@ document.addEventListener('click', ev => {
   if (a === 'close-modal') closeCurrentModal();
 });
 document.addEventListener('submit', ev => {
+  if (ev.target.id === 'patientContextForm') {
+    ev.preventDefault(); const id = state.patientId;
+    patientDetails[id] = {...patientDetails[id],context:ev.target.elements.context.value.trim()};
+    save(); state.modal = null; toast('Patient context saved.'); return;
+  }
+  if (ev.target.id === 'patientDetailsForm') {
+    ev.preventDefault(); const form = ev.target, id = state.patientId, name = form.elements.name.value.trim();
+    if (!name) return;
+    const changes = {};
+    ['gender','email','phone','history','medications','allergies','additionalNotes'].forEach(key => changes[key] = form.elements[key].value.trim());
+    patientDetails[id] = {...patientDetails[id],...changes};
+    patients[id] = {...patients[id],name,dob:prettyDate(form.elements.dob.value),initials:name.split(/\s+/).slice(0,2).map(part=>part[0]).join('').toUpperCase()};
+    customPatients[id] = {...patients[id]}; save(); state.modal = 'patient-details'; toast('Patient details saved.'); return;
+  }
+
   if (ev.target.id === 'createDocumentForm') { ev.preventDefault(); createSessionDocument(ev.target.elements.documentType.value); return; }
   if (ev.target.id === 'editDocumentForm') {
     ev.preventDefault(); const s = session(state.sessionId), d = activeDocument(s), form = ev.target;

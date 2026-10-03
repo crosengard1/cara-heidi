@@ -6,6 +6,9 @@ const libraryEntries = [
   { id: 'round-list', group: 'Today', label: 'Full round list', screen: 'worklist', data: { worklistType: 'ward' } },
   { id: 'patients', group: 'Patients', label: 'Patient list', screen: 'patients' },
   { id: 'patient-history', group: 'Patients', label: 'Patient details & history', screen: 'history', data: { patientId: 'linda' } },
+  { id: 'patient-details', group: 'Patients', label: 'Patient details', screen: 'history', modal:'patient-details', data:{patientId:'linda'} },
+  { id: 'patient-context-edit', group: 'Patients', label: 'Edit patient context', screen: 'history', modal:'edit-patient-context', data:{patientId:'linda'} },
+  { id: 'patient-details-edit', group: 'Patients', label: 'Edit patient details', screen: 'history', modal:'edit-patient-details', data:{patientId:'linda'} },
   { id: 'appointment', group: 'Encounters', label: 'Appointment encounter', screen: 'encounter', data: { patientId: 'amelia', encounterId: 'ameliaToday' } },
   { id: 'inpatient', group: 'Encounters', label: 'Inpatient encounter', screen: 'encounter', data: { patientId: 'linda', encounterId: 'lindaCurrent' } },
   { id: 'completed', group: 'Encounters', label: 'Completed encounter', screen: 'encounter', data: { patientId: 'linda', encounterId: 'lindaPrior' } },
@@ -37,6 +40,9 @@ const libraryPanel = document.getElementById('screenLibrary');
 const libraryList = document.getElementById('libraryScreens');
 
 function currentLibraryId() {
+  if (state.modal === 'patient-details') return 'patient-details';
+  if (state.modal === 'edit-patient-context') return 'patient-context-edit';
+  if (state.modal === 'edit-patient-details') return 'patient-details-edit';
   if (state.chatOpen) return 'ask-heidi';
   if (state.modal === 'session-details') return 'session-details';
   if (state.modal === 'quick-add') return 'quick-add';
