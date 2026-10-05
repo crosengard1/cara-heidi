@@ -1,9 +1,13 @@
 /* Review navigation around the prototype; all entries reuse the app's renderers. */
 const libraryEntries = [
+  {id:'home-conference-email',group:'Homepage examples',label:'Conference invitation routine',screen:'today',modal:'home-detail',data:{homeConcept:'apps',homeDetailId:'conference-email'}},
   {id:'home-day-summary',group:'Homepage examples',label:'Day summary routine',screen:'today',modal:'home-detail',data:{homeConcept:'apps',homeDetailId:'day-summary'}},
   {id:'home-balanced',group:'Homepage options',label:'10 · Patients, work and review',screen:'today',data:{homeConcept:'balanced'}},
   {id:'home-instructions',group:'Homepage examples',label:'Patient instructions review',screen:'today',modal:'home-detail',data:{homeConcept:'balanced',homeDetailId:'instructions'}},
   ... (isHomepageExploration ? [
+    {id:'note-pushed',group:'Sessions',label:'Note pushed to EHR',screen:'session',data:{sessionId:'s-linda-2',patientId:'linda',encounterId:'lindaCurrent'}},
+    {id:'note-shared',group:'Sessions',label:'Note shared',screen:'session',data:{sessionId:'s-noah-1',patientId:'noah',encounterId:'noahPrior'}},
+    {id:'note-unshared',group:'Sessions',label:'Note not shared',screen:'session',data:{sessionId:'s-amelia-1',patientId:'amelia',encounterId:'ameliaPrior'}},
     {id:'patients-appointments',group:'Patient ideas',label:'Appointments by day',screen:'patients',data:{patientView:'appointments',patientDay:'2026-10-02'}},
     {id:'patients-round',group:'Patient ideas',label:'Active inpatient round',screen:'patients',data:{patientView:'round'}},
     {id:'patients-all',group:'Patient ideas',label:'All patients directory',screen:'patients',data:{patientView:'all'}},
@@ -72,8 +76,8 @@ if (isHomepageExploration) {
   const sections = {
     'Home': ['home-apps'],
     'Patients': ['patients-appointments','patients-round','patients-all','patient-history'],
-    'Work & review': ['work','todo-detail','agent-detail','home-day-summary','home-instructions','ask-heidi'],
-    'Sessions & encounters': ['sessions','session-linked','appointment','inpatient','completed'],
+    'Work & review': ['work','todo-detail','agent-detail','home-day-summary','home-conference-email','home-instructions','ask-heidi'],
+    'Sessions & encounters': ['sessions','session-linked','note-pushed','note-shared','note-unshared','appointment','inpatient','completed'],
     'More states & tools': [],
     'Earlier home explorations': []
   };
@@ -96,7 +100,7 @@ function currentLibraryId() {
   if (isHomepageExploration && state.screen === 'patients' && !state.modal && !state.chatOpen) return state.patientView === 'round' ? 'patients-round' : state.patientView === 'all' ? 'patients-all' : state.patientDay === '2026-10-03' ? 'patients-empty-day' : 'patients-appointments';
   if (state.homeConcept === 'now' && state.screen === 'history' && !state.modal && !state.chatOpen) return 'home-now-patient';
   if (state.screen === 'today' && state.homeConcept === 'patient' && state.homeVisitStage === 'before' && !state.modal && !state.chatOpen) return 'home-before';
-  if (state.modal === 'home-detail') return ({'day-summary':'home-day-summary',instructions:'home-instructions',prechart:'home-prechart',recipient:'home-recipient',desktop:'home-desktop',urgent:'home-urgent',handover:'home-handover',carry:'home-carry',followup:'home-draft',brief:'home-routine',running:'home-running',blocked:'home-blocked'})[state.homeDetailId] || 'home-agents';
+  if (state.modal === 'home-detail') return ({'conference-email':'home-conference-email','day-summary':'home-day-summary',instructions:'home-instructions',prechart:'home-prechart',recipient:'home-recipient',desktop:'home-desktop',urgent:'home-urgent',handover:'home-handover',carry:'home-carry',followup:'home-draft',brief:'home-routine',running:'home-running',blocked:'home-blocked'})[state.homeDetailId] || 'home-agents';
   if (state.screen === 'today' && state.homeConcept && !state.modal && !state.chatOpen) return state.homeConcept === 'rhythm' ? (state.homeAgents === false && state.homePhase === 'prepare' ? 'home-rhythm-apps' : 'home-' + (state.homePhase || 'prepare')) : 'home-' + state.homeConcept;
   if (state.modal === 'patient-details') return 'patient-details';
   if (state.modal === 'edit-patient-context') return 'patient-context-edit';
@@ -117,7 +121,7 @@ function currentLibraryId() {
     const encounter = encounters[state.encounterId];
     return encounter.status === 'Complete' ? 'completed' : encounter.kind === 'Appointment encounter' ? 'appointment' : 'inpatient';
   }
-  if (state.screen === 'session') return session(state.sessionId)?.patientId ? 'session-linked' : 'session-adhoc';
+  if (state.screen === 'session') return (isHomepageExploration && {'s-linda-2':'note-pushed','s-noah-1':'note-shared','s-amelia-1':'note-unshared'}[state.sessionId]) || (session(state.sessionId)?.patientId ? 'session-linked' : 'session-adhoc');
   if (state.screen === 'record') return 'capture';
   if (state.screen === 'tasks') {
     const item = workItems.find(item => item.id === state.expandedWorkId);

@@ -218,8 +218,8 @@
 /* Patient profile: concise saved context first, detailed fields on demand. */
 .patient-title-row { display:flex;align-items:flex-start;gap:12px; }
 .patient-title-row h1,.patient-title-row h2 { flex:1;min-width:0; }
-.patient-title-row .patient-scribe { flex:none;width:44px;height:44px;min-height:44px;border-radius:50%;background:var(--color-validation-success);color:var(--color-text-primary-invert);padding:10px; }
-.patient-title-row .patient-scribe:hover { background:color-mix(in srgb,var(--color-validation-success) 85%,var(--color-text-primary)); }
+.patient-title-row .patient-scribe, .home-patient-entry .patient-scribe { flex:none;width:44px;height:44px;min-height:44px;border-radius:50%;background:var(--color-validation-success);color:var(--color-text-primary-invert);padding:10px; }
+.patient-title-row .patient-scribe:hover, .home-patient-entry .patient-scribe:hover { background:color-mix(in srgb,var(--color-validation-success) 85%,var(--color-text-primary)); }
 .patient-section-title { display:flex;align-items:center;justify-content:space-between;gap:8px; }
 .patient-section-title h2 { font:600 16px/24px var(--font-family-inter);margin:0; }
 .patient-section-title .hui-button { min-height:44px; }
@@ -349,3 +349,13 @@
 
 .home-heidi-mark { width: 22px; height: 22px; display: grid; place-items: center; flex: none; }
 .home-heidi-mark img { width: 20px; height: 20px; }
+
+.home-patient-entry { display: flex; align-items: center; gap: 8px; padding-right: 16px; min-height: 96px; }
+.home-patient-entry + .home-patient-entry { border-top: 1px solid var(--mobile-divider); }
+.home-patient-entry .home-row { flex: 1; min-width: 0; min-height: 96px; padding: 16px 0 16px 16px; }
+.home-patient-entry .row-title { font: 500 16px/24px var(--font-family-inter); }
+.home-patient-entry .row-sub { font: 400 14px/20px var(--font-family-inter); }
+
+/* Session continuation shares existing ghost button and caption roles. */
+.has-homepage-explorations .session-item-footer { justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.session-resume-action { padding: 0 16px 12px; }

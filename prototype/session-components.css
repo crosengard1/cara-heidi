@@ -1,7 +1,7 @@
 /* Mobile compositions around the unmodified Button and Typography components
    supplied in Product – Design System. Sizes/type are generated from their source;
    only layout and mobile surface treatments live here. */
-:where(.home-concept [data-slot="button"], .home-detail-sheet [data-slot="button"], .session-focused [data-slot="button"], .patient-title-row [data-slot="button"], .patient-overview [data-slot="button"], .patient-detail-sheet [data-slot="button"], .patient-context-sheet [data-slot="button"]) { border: 0; background: transparent; font-family: var(--font-family-inter); }
+:where(.has-homepage-explorations .session-item-footer [data-slot="button"], .home-patient-entry [data-slot="button"], .home-concept [data-slot="button"], .home-detail-sheet [data-slot="button"], .session-focused [data-slot="button"], .patient-title-row [data-slot="button"], .patient-overview [data-slot="button"], .patient-detail-sheet [data-slot="button"], .patient-context-sheet [data-slot="button"]) { border: 0; background: transparent; font-family: var(--font-family-inter); }
 .session-focused { color: var(--color-text-primary); }
 .session-focused .app-scroll { padding: 12px 16px 116px; scroll-padding-bottom: 116px; }
 .hui-type { margin: 0; font-family: var(--font-family-inter); }
