@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CareOS · Data model</title>
+<link rel="icon" href="./assets/heidi-symbol-bark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="./assets/tokens.css"><link rel="stylesheet" href="./styles.css?v=data-model-1"><link rel="stylesheet" href="./mobile-design-system.css"><link rel="stylesheet" href="./data-model.css?v=1">
+<script defer src="./data-model.js?v=1"></script>
+</head>
+<body class="data-model-page">
+<nav class="site-nav" aria-label="CareOS site"><strong>CareOS</strong><a href="https://crosengard1.github.io/cara-heidi/">Requirements</a><a href="./?view=prototype">Prototype</a><a href="./?view=ideas">Ideas</a><a href="./data-model.html" aria-current="page">Data model</a><span>Working product model</span></nav>
+<main class="model-main">
+<header class="model-header"><div><p class="model-eyebrow">CareOS · Mobile foundations</p><h1>How the data fits together</h1><p>One patient history. Separate periods of care, captured sessions and work.<br>Explore the relationships, then see where retention decisions are still open.</p></div><span class="model-badge">Draft for discussion</span></header>
+<div class="model-toolbar"><div class="model-modes" role="group" aria-label="Connection mode"><button type="button" data-mode="heidi" aria-pressed="true">Without EHR</button><button type="button" data-mode="ehr" aria-pressed="false">With EHR</button></div><label class="model-retention"><input id="retention" type="checkbox"> Explore session expiry</label></div>
+<p id="mode-description" class="model-description">Heidi-only · The clinician creates patients and encounters. Capture can start before either is assigned.</p>
+<div class="model-legend"><span><i class="line-solid"></i>Core relationship</span><span><i class="line-dashed"></i>Optional link</span><span><i class="line-proposed"></i>Proposed / later</span><span>Arrows show relationships, not deletion rules.</span></div>
+<div class="model-layout">
+<section class="model-map" aria-label="Interactive data relationship map">
+<svg id="connectors" aria-hidden="true"></svg>
+<div class="map-grid" id="map-grid">
+<button type="button" class="model-node external" id="ehr-patient" data-node="ehrPatient" hidden><span class="node-kicker">External source</span><strong>EHR patient</strong><span>Source system + patient ID</span><small>Linking and retention need definition</small></button>
+<button type="button" class="model-node external" id="ehr-encounter" data-node="ehrEncounter" hidden><span class="node-kicker">External source</span><strong>EHR encounter</strong><span>Source system + encounter ID</span><small>Separate from the Heidi encounter ID</small></button>
+<button type="button" class="model-node" id="patient" data-node="patient" aria-pressed="true"><span class="node-kicker">Who</span><strong>Patient</strong><span>Identity and Heidi history</span><small data-normal="Can exist before any session" data-expiry="Profile can persist independently">Can exist before any session</small></button>
+<button type="button" class="model-node" id="encounter" data-node="encounter" aria-pressed="false"><span class="node-kicker">Period of care</span><strong>Encounter</strong><span>Appointment or inpatient care</span><small data-normal="One patient · zero or more sessions" data-expiry="Metadata retention: open">One patient · zero or more sessions</small></button>
+<button type="button" class="model-node" id="session" data-node="session" aria-pressed="false"><span class="node-kicker">Captured touchpoint</span><strong>Session</strong><span>Recording, dictation, transcript</span><small data-normal="May begin unassigned" data-expiry="Content unavailable in this scenario">May begin unassigned</small></button>
+<button type="button" class="model-node" id="context" data-node="context" aria-pressed="false"><span class="node-kicker">Patient information</span><strong>Saved context</strong><span>Details deliberately maintained</span><small data-normal="Independent of a single session" data-expiry="Intended to persist · duration open">Independent of a single session</small></button>
+<button type="button" class="model-node" id="task" data-node="task" aria-pressed="false"><span class="node-kicker">Follow-through</span><strong>Task</strong><span>Action, owner and status</span><small data-normal="General or linked · source optional" data-expiry="Task and source-link retention: open">General or linked · source optional</small></button>
+<button type="button" class="model-node" id="document" data-node="document" aria-pressed="false"><span class="node-kicker">Output</span><strong>Document</strong><span>Note, letter or instructions</span><small data-normal="Keeps its source · ownership open" data-expiry="Independent copy or cascade: open">Keeps its source · ownership open</small></button>
+<button type="button" class="model-node proposed" id="routine" data-node="routine" aria-pressed="false"><span class="node-kicker">Later capability</span><strong>Routine and runs</strong><span>Recurring instructions → execution</span><small data-normal="Proposed separation of records" data-expiry="Run and output retention: open">Proposed separation of records</small></button>
+<button type="button" class="model-node" id="delivery" data-node="delivery" aria-pressed="false"><span class="node-kicker">Per document</span><strong>Delivery history</strong><span id="delivery-channel">Share / export where supported</span><small data-normal="A receipt refers to a sent version" data-expiry="Receipt and external-copy rules: open">A receipt refers to a sent version</small></button>
+</div>
+<ul id="map-relationships" class="map-relationships" aria-label="Map relationships"></ul>
+</section>
+<aside class="model-detail" aria-labelledby="detail-title"><p class="model-eyebrow">Select a record to inspect</p><div id="record-detail" aria-live="polite"></div><a class="model-back" href="#map-grid">Back to map</a></aside>
+</div>
+<section id="expiry-note" class="model-expiry" hidden><h2>If session content expires</h2><p>This is a discussion scenario, not a deletion preview. Explicitly saved patient information is intended to persist independently. Retention of encounter metadata, documents, tasks and receipts is unresolved. No automatic cascade is assumed, and no retention duration has been set.</p></section>
+<section class="model-bottom"><div><h2>The screens are views</h2><p><strong>Today</strong> brings relevant encounters, tasks and routine outputs together. <strong>Patients</strong> surfaces patient history and care lists. <strong>Sessions</strong> includes unassigned captures. <strong>Work</strong> tracks actions.</p><p>A round is a worklist across patients’ inpatient encounters. It is not a shared encounter.</p></div><div><h2>Decisions still to make</h2><ul><li>Document ownership and patient-level task links.</li><li>Encounter defaults, corrections and lifecycle.</li><li>Retention and deletion rules for each record.</li><li>EHR matching, field ownership and saving patients.</li></ul><p>Routine execution and encounter-level outputs are later scope.</p></div></section>
+<footer class="model-footer"><a href="https://app.notion.com/p/3edca630286e80379836c2077519b0bb">CareOS Phase 1 PRD</a><span>Product model, not a production database schema. Latest prototype decisions include resume and per-document delivery.</span></footer>
+</main>
+</body>
+</html>
