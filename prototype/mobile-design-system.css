@@ -346,3 +346,6 @@
 .home-finish-group .home-inline-actions { margin-bottom: 0; }
 
 .home-balanced .patient-date-nav { margin: 0 0 12px; }
+
+.home-heidi-mark { width: 22px; height: 22px; display: grid; place-items: center; flex: none; }
+.home-heidi-mark img { width: 20px; height: 20px; }

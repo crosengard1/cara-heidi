@@ -1,5 +1,6 @@
 /* Review navigation around the prototype; all entries reuse the app's renderers. */
 const libraryEntries = [
+  {id:'home-day-summary',group:'Homepage examples',label:'Day summary routine',screen:'today',modal:'home-detail',data:{homeConcept:'apps',homeDetailId:'day-summary'}},
   {id:'home-balanced',group:'Homepage options',label:'10 · Patients, work and review',screen:'today',data:{homeConcept:'balanced'}},
   {id:'home-instructions',group:'Homepage examples',label:'Patient instructions review',screen:'today',modal:'home-detail',data:{homeConcept:'balanced',homeDetailId:'instructions'}},
   ... (isHomepageExploration ? [
@@ -71,7 +72,7 @@ if (isHomepageExploration) {
   const sections = {
     'Home': ['home-apps'],
     'Patients': ['patients-appointments','patients-round','patients-all','patient-history'],
-    'Work & review': ['work','todo-detail','agent-detail','home-instructions','ask-heidi'],
+    'Work & review': ['work','todo-detail','agent-detail','home-day-summary','home-instructions','ask-heidi'],
     'Sessions & encounters': ['sessions','session-linked','appointment','inpatient','completed'],
     'More states & tools': [],
     'Earlier home explorations': []
@@ -95,7 +96,7 @@ function currentLibraryId() {
   if (isHomepageExploration && state.screen === 'patients' && !state.modal && !state.chatOpen) return state.patientView === 'round' ? 'patients-round' : state.patientView === 'all' ? 'patients-all' : state.patientDay === '2026-10-03' ? 'patients-empty-day' : 'patients-appointments';
   if (state.homeConcept === 'now' && state.screen === 'history' && !state.modal && !state.chatOpen) return 'home-now-patient';
   if (state.screen === 'today' && state.homeConcept === 'patient' && state.homeVisitStage === 'before' && !state.modal && !state.chatOpen) return 'home-before';
-  if (state.modal === 'home-detail') return ({instructions:'home-instructions',prechart:'home-prechart',recipient:'home-recipient',desktop:'home-desktop',urgent:'home-urgent',handover:'home-handover',carry:'home-carry',followup:'home-draft',brief:'home-routine',running:'home-running',blocked:'home-blocked'})[state.homeDetailId] || 'home-agents';
+  if (state.modal === 'home-detail') return ({'day-summary':'home-day-summary',instructions:'home-instructions',prechart:'home-prechart',recipient:'home-recipient',desktop:'home-desktop',urgent:'home-urgent',handover:'home-handover',carry:'home-carry',followup:'home-draft',brief:'home-routine',running:'home-running',blocked:'home-blocked'})[state.homeDetailId] || 'home-agents';
   if (state.screen === 'today' && state.homeConcept && !state.modal && !state.chatOpen) return state.homeConcept === 'rhythm' ? (state.homeAgents === false && state.homePhase === 'prepare' ? 'home-rhythm-apps' : 'home-' + (state.homePhase || 'prepare')) : 'home-' + state.homeConcept;
   if (state.modal === 'patient-details') return 'patient-details';
   if (state.modal === 'edit-patient-context') return 'patient-context-edit';
