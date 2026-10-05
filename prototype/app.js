@@ -1,5 +1,13 @@
 /* Local, fictional product prototype. No clinical data or EHR service is connected. */
-const STORAGE_KEY = 'heidi-today-concept-v2';
+const isHomepageExploration = new URLSearchParams(location.search).get('view') === 'ideas';
+document.body.classList.toggle('has-homepage-explorations', isHomepageExploration);
+const conceptToolbar = document.querySelector('.concept-toolbar');
+if (conceptToolbar) conceptToolbar.hidden = !isHomepageExploration;
+document.querySelectorAll('[data-site-tab]').forEach(link => {
+  if (link.dataset.siteTab === (isHomepageExploration ? 'ideas' : 'prototype')) link.setAttribute('aria-current', 'page');
+  else link.removeAttribute('aria-current');
+});
+const STORAGE_KEY = isHomepageExploration ? 'heidi-homepage-explorations-v1' : 'heidi-today-concept-v2';
 const patients = {
   linda: { name: 'Linda Wong', dob: '20 Apr 1985', initials: 'LW', avatar: 'green', identifier: 'HW-10482' },
   amelia: { name: 'Amelia Grant', dob: '14 Feb 1979', initials: 'AG', avatar: 'blue', identifier: 'HW-20816' },
@@ -208,7 +216,7 @@ function topbar(title, details = false) {
 }
 function nav() {
   const items = [['today','home','Today'], ['patients','user','Patients'], ['sessions','waves','Sessions'], ['tasks','check','Work']];
-  return '<div class="nav-shell"><nav class="nav-dock" aria-label="Main navigation">' + items.map(([screen, glyph, label]) => '<button type="button" class="nav-item ' + (state.screen === screen || (screen === 'today' && state.screen === 'worklist') ? 'active' : '') + '" data-action="nav-' + screen + '">' + icon(glyph) + '<span>' + label + '</span></button>').join('') + '</nav></div>';
+  return '<div class="nav-shell"><nav class="nav-dock" aria-label="Main navigation">' + items.map(([screen, glyph, label]) => '<button type="button" class="nav-item ' + (state.screen === screen || (screen === 'today' && state.screen === 'worklist') || (isHomepageExploration && screen === 'patients' && ['history','encounter'].includes(state.screen)) ? 'active' : '') + '" data-action="nav-' + screen + '">' + icon(glyph) + '<span>' + label + '</span></button>').join('') + '</nav></div>';
 }
 function chatContextLabel() {
   if (state.screen === 'encounter' || state.screen === 'history') return patients[state.patientId]?.name || 'Patient';
@@ -227,11 +235,166 @@ function appointmentRow(encounterId, time) {
   const e = encounters[encounterId], p = patients[e.patientId];
   return '<button type="button" class="appointment-row" data-action="open-encounter" data-id="' + encounterId + '"><span class="appointment-time">' + time + '</span>' + initials(p) + '<span class="row-main"><span class="row-title">' + esc(p.name) + '</span><span class="row-sub">' + esc(e.title) + '</span></span><span class="row-arrow">' + icon('chevron') + '</span></button>';
 }
-function wardRow(item) {
+function wardRow(item, showAdmission = false) {
   const p = patients[item.patientId], recent = sessionsForEncounter(item.encounterId)[0];
-  return '<button type="button" class="encounter-row" data-action="open-encounter" data-id="' + item.encounterId + '">' + initials(p) + '<span class="row-main"><span class="row-title">' + esc(p.name) + '</span><span class="row-sub">' + esc(item.ward) + (item.room ? ' · Room ' + esc(item.room) : '') + '</span><span class="row-third">' + esc(recent ? 'Latest session ' + recent.date.toLowerCase() : 'No Heidi session yet') + '</span></span><span class="row-arrow">' + icon('chevron') + '</span></button>';
+  return '<button type="button" class="encounter-row" data-action="open-encounter" data-id="' + item.encounterId + '">' + initials(p) + '<span class="row-main"><span class="row-title">' + esc(p.name) + '</span><span class="row-sub">' + esc(item.ward) + (item.room ? ' · Room ' + esc(item.room) : '') + '</span><span class="row-third">' + esc(showAdmission === true ? 'Admitted ' + encounterStartLabel(encounters[item.encounterId]) : recent ? 'Latest session ' + recent.date.toLowerCase() : 'No Heidi session yet') + '</span></span><span class="row-arrow">' + icon('chevron') + '</span></button>';
 }
+// Homepage explorations use transient example state; no saved records or agent jobs are created.
+function homePatientName() { return patients[session('s-linda-1')?.patientId]?.name || 'Unassigned session'; }
+function homeSection(title, content, trailing = '') {
+  return '<section class="home-section"><div class="home-section-heading"><h2>' + esc(title) + '</h2>' + trailing + '</div>' + content + '</section>';
+}
+function homeDetailButton(id, title, sub, glyph = 'file', status = '') {
+  return '<button type="button" class="home-row" data-action="home-detail" data-id="' + id + '"><span class="home-symbol">' + icon(glyph) + '</span><span class="row-main"><span class="row-title">' + esc(title) + '</span><span class="row-sub">' + esc(sub) + '</span>' + (status ? '<span class="home-state">' + esc(status) + '</span>' : '') + '</span><span class="row-arrow">' + icon('chevron') + '</span></button>';
+}
+function homeContinue() {
+  const recent = [...state.sessions].sort((a,b) => sessionRecency(b)-sessionRecency(a))[0];
+  if (!recent) return homeSection('Recent sessions', '<p class="home-muted">No sessions yet. Use + to start a session.</p>');
+  const p = patients[recent.patientId];
+  return homeSection('Pick up where you left off', '<div class="card"><button type="button" class="home-row" data-action="open-session" data-id="' + esc(recent.id) + '"><span class="home-symbol">' + icon('pen') + '</span><span class="row-main"><span class="row-title">' + esc(recent.title) + '</span><span class="row-sub">' + esc(p?.name || 'Unassigned session') + '</span><span class="row-third">' + esc(recent.date) + '</span></span><span class="row-arrow">' + icon('chevron') + '</span></button></div>');
+}
+function homePatients(heading = 'Your patients', limit = 2) {
+  const round = state.homeListMode === 'round';
+  const controls = '<div class="today-modes" role="group" aria-label="Patient list">' + [['appointments','Appointments',appointmentPlan.length],['round','Round',wardPlan.length]].map(([id,label,count]) => '<button type="button" class="today-mode' + ((round ? id === 'round' : id === 'appointments') ? ' selected' : '') + '" data-action="home-list-mode" data-id="' + id + '" aria-pressed="' + (round ? id === 'round' : id === 'appointments') + '">' + label + '<span>' + count + '</span></button>').join('') + '</div>';
+  const rows = round ? wardPlan.slice(0,limit).map(wardRow).join('') : appointmentPlan.slice(state.homeConcept === 'rhythm' && state.homePhase === 'during' ? 3 : 0, (state.homeConcept === 'rhythm' && state.homePhase === 'during' ? 3 : 0)+limit).map(item => appointmentRow(item.encounterId,item.time)).join('');
+  return homeSection(heading, controls + '<div class="card home-patient-list">' + (rows || '<p class="home-muted">No patients on this list.</p>') + '</div>', '<button type="button" class="text-action" data-action="home-all-patients">View all ' + icon('chevron') + '</button>');
+}
+function homeTasks() {
+  const tasks = [['pharmacy','Call the pharmacy','Linda Thompson · Added by you'],['paperwork','Review discharge paperwork','Linda Thompson · Added by you']];
+  return homeSection('Your to-dos', '<div class="card">' + tasks.map(([id,title,sub]) => '<button type="button" class="home-row home-check-row' + (state.homeDone?.[id] ? ' is-done' : '') + '" role="checkbox" aria-checked="' + !!state.homeDone?.[id] + '" data-action="home-task" data-id="' + id + '"><span class="home-check">' + (state.homeDone?.[id] ? icon('check') : '') + '</span><span class="row-main"><span class="row-title">' + title + '</span><span class="row-sub">' + sub + '</span></span></button>').join('') + '</div>');
+}
+function homeReady() {
+  return homeSection('Ready for you', '<div class="card">' + homeDetailButton('followup','GP follow-up draft','Linda Thompson · Morning ward review','file','Ready to review · Not sent') + homeDetailButton('handover','Handover draft','Ward 4B · Today’s sessions','file','Ready to review') + '</div>', '<span class="home-count">2</span>');
+}
+function homeRoutines() {
+  return homeSection('Your routines', '<div class="card">' + homeDetailButton('brief','Morning preparation','Completed 07:15 · Next: tomorrow','check') + homeDetailButton('running','Patient instructions','Preparing a draft · Started 09:35','clock') + homeDetailButton('blocked','Tomorrow’s preparation','Needs attention · Calendar unavailable','alert') + '</div>');
+}
+function homeCompleted() {
+  return homeSection('Completed today', '<div class="home-completed">' + icon('check') + '<div><span class="row-title">Morning brief prepared</span><span class="row-sub">07:15 · Available to review</span></div><button type="button" class="text-action" data-action="home-detail" data-id="brief">Open</button></div>');
+}
+function homeCheck(id, title, sub) {
+  return '<button type="button" class="home-row home-check-row' + (state.homeDone?.[id] ? ' is-done' : '') + '" role="checkbox" aria-checked="' + !!state.homeDone?.[id] + '" data-action="home-task" data-id="' + esc(id) + '"><span class="home-check">' + (state.homeDone?.[id] ? icon('check') : '') + '</span><span class="row-main"><span class="row-title">' + esc(title) + '</span><span class="row-sub">' + esc(sub) + '</span></span></button>';
+}
+function homeCurrentPatient() {
+  const source = session('s-linda-1');
+  return source ? '<div class="home-current">' + renderPatientContext(source.patientId,source.encounterId,{compact:true}) + '</div>' : '';
+}
+function homeNextPatient() {
+  return homeSection('Next patient', '<div class="card">' + wardRow(wardPlan[1]) + '</div>');
+}
+function homeCaptureList() {
+  const items = state.homeCaptured || [];
+  return homeSection('Captured today', items.length ? '<div class="card">' + items.map((item,i)=> homeCheck('capture-' + i,item.title,item.context)).join('') + '</div>' : '<div class="home-empty">' + icon('pen') + '<p>Nothing to hold in your head.</p><span>Add a to-do as it comes up.</span></div>');
+}
+function renderWorkflowHome() {
+  const type = state.homeConcept;
+  const titles = {patient:'This patient. Then next.',delegated:'Heidi is on it.',capture:'Get it out of your head.',visit:'Finish this visit.',leave:'Leave today in a good place.'};
+  const subtitles = {patient:'Keep the work with the patient.',delegated:'Your work, moving while you see patients.',capture:'A place for the little things to do.',visit:'Close the loop before the next patient.',leave:'Friday 2 October · Before you finish'};
+  let content = '';
+  if (type === 'patient') {
+    const before = state.homeVisitStage === 'before';
+    content = '<div class="today-modes" role="group" aria-label="Patient stage">' + [['before','Before seeing them'],['after','After the session']].map(([id,label])=>'<button class="today-mode' + (before === (id === 'before') ? ' selected' : '') + '" type="button" data-action="home-visit-stage" data-id="' + id + '" aria-pressed="' + (before === (id === 'before')) + '">' + label + '</button>').join('') + '</div>' + homeCurrentPatient();
+    content += before ? homeSection('Before you begin','<div class="card">' + homeDetailButton('prechart','Prechart ready','Recent sessions and patient context','file','Example draft · Review before use') + '</div><div class="home-inline-actions">' + huiButton('Open encounter','open-encounter',{'data-id':session('s-linda-1')?.encounterId || 'lindaCurrent',variant:'secondary'}) + '</div>') : homeSection('For this patient','<div class="card">' + '<button type="button" class="home-row" data-action="home-source"><span class="home-symbol">' + icon('pen') + '</span><span class="row-main"><span class="row-title">Review the note</span><span class="row-sub">Morning ward review · Open session</span></span><span class="row-arrow">' + icon('chevron') + '</span></button>' + homeDetailButton('followup','Review follow-up draft','Ready to review · Not sent') + homeCheck('patient-followup','Arrange follow-up','Your to-do · Added by you') + '</div>');
+    content += homeNextPatient();
+  }
+  if (type === 'delegated') content = homeSection('Needs your input','<div class="card">' + homeDetailButton('recipient','Choose a referral recipient',homePatientName() + ' · Draft waiting','user','Waiting for you') + '</div>') + homeSection('Heidi is working on','<div class="card">' + homeDetailButton('running','Patient instructions',homePatientName() + ' · Preparing draft','clock') + homeDetailButton('desktop','Documentation on your desktop','Waiting for your desktop · No changes made','pause') + '</div>') + homeReady() + homeNextPatient() + homeCompleted();
+  if (type === 'capture') content = '<form id="homeCaptureForm" class="home-capture-form"><label for="homeCaptureText">What do you need to do?</label><textarea id="homeCaptureText" name="title" rows="2" maxlength="500" required placeholder="Call the pharmacy after reviewing results…"></textarea><label for="homeCaptureContext">Keep it with</label><select id="homeCaptureContext" name="context"><option value="General">General</option><option value="' + esc(homePatientName()) + '">' + esc(homePatientName()) + ' · Current encounter</option></select>' + huiButton('Add to my day','',{type:'submit',variant:'secondary',glyph:'plus'}) + '<p class="home-capture-feedback" role="status">' + (state.homeCaptured?.length ? 'Added to your example list below.' : 'Example to-dos stay here until you reload.') + '</p></form>' + homeCaptureList() + homeTasks() + homePatients('Your patients',1);
+  if (type === 'visit') {
+    const remaining = ['visit-note','visit-referral','visit-followup'].filter(id=>!state.homeDone?.[id]).length;
+    content = homeCurrentPatient() + '<div class="home-progress" role="status"><span>' + (remaining ? remaining + (remaining === 1 ? ' thing to finish' : ' things to finish') : 'This visit’s checklist is complete') + '</span><small>Your checklist · Mark off as you go</small></div>' + '<div class="card">' + homeCheck('visit-note','Note reviewed','Open the source note to review') + homeCheck('visit-referral','Referral draft reviewed','Review is separate from sending') + homeCheck('visit-followup','Follow-up task confirmed','Your to-do') + '</div><div class="home-inline-actions">' + huiButton('Open note','home-source',{glyph:'file'}) + huiButton('Open referral draft','home-detail',{'data-id':'followup',glyph:'file'}) + '</div>' + homeNextPatient() + '<p class="home-muted">Anything unfinished stays on your checklist.</p>';
+  }
+  if (type === 'leave') content = homeSection('Needs attention now','<div class="home-urgent">' + homeDetailButton('urgent','Review flagged follow-up',homePatientName() + ' · Marked urgent by you','alert','Illustrative flagged task') + '</div>') + homeSection('Still needs you','<div class="card">' + homeDetailButton('followup','Follow-up draft','Ready for review · Not sent') + homeCheck('leave-call','Call the pharmacy','Your to-do · Still outstanding') + '</div>') + homeSection('Still with Heidi','<div class="card">' + homeDetailButton('desktop','Documentation on your desktop','Blocked · Waiting for your desktop','pause') + '</div>') + homeCompleted() + homeSection('Keep sight of what remains','<div class="card">' + homeDetailButton('carry','Review carry-forward','Unfinished work stays visible','list') + '</div>');
+  return '<div class="home-concept home-' + type + '">' + topbar() + '<div class="hero"><h1>' + titles[type] + '</h1><div class="hero-subtitle">' + subtitles[type] + '</div></div>' + (type !== 'capture' ? '<p class="home-demo-label">Example workflow · Agent activity is illustrative</p>' : '') + content + '<p class="home-example-note">Local concept · Example checklist changes last until reload.<br>No agent execution, sending or desktop changes.</p></div>';
+}
+
+// The focused home is an entry point; patient work reuses the Work records.
+function workForPatient(patientId) {
+  return workItems.filter(item => {
+    const source = item.sessionId && session(item.sessionId);
+    return (source?.patientId || encounters[item.encounterId]?.patientId) === patientId;
+  });
+}
+function renderNowHome() {
+  const source = session('s-linda-1'), p = patients[source?.patientId];
+  const outstanding = p ? workForPatient(source.patientId).filter(item => workStatus(item) !== 'done') : [];
+  const current = p ? '<section class="home-now-current"><div class="home-section-heading"><h2>Pick up with</h2></div>' + homeCurrentPatient() +
+    '<p class="home-now-summary">' + (outstanding.length ? outstanding.length + ' work items to pick up with this patient' : 'No outstanding work for this patient') + '</p>' +
+    huiButton('Open patient','history-patient',{'data-id':source.patientId,variant:'secondary',glyph:'chevron'}) + '</section>' : '<p class="home-muted">Choose a patient to get started.</p>';
+  return '<div class="home-concept home-now">' + topbar() + '<div class="hero"><h1>Pick up here.</h1><div class="hero-subtitle">Your patient, and what needs doing.</div></div>' + current +
+    homeSection('When you’re ready', '<div class="today-modes home-now-modes" role="group" aria-label="Choose patient list">' + [['appointments','Appointments'],['round','Round']].map(([id,label])=>'<button type="button" class="today-mode' + ((state.homeNowList || 'appointments') === id ? ' selected' : '') + '" aria-pressed="' + ((state.homeNowList || 'appointments') === id) + '" data-action="home-now-list" data-id="' + id + '">' + label + '</button>').join('') + '</div><div class="home-now-list-link"><span>' + (state.homeNowList === 'round' ? 'Your active inpatient list' : 'Your schedule, day by day') + '</span><button type="button" class="text-action" data-action="home-now-open-list">' + (state.homeNowList === 'round' ? 'Open round' : 'Open appointments') + ' ' + icon('chevron') + '</button></div>') + '</div>';
+}
+function patientDateControl(day) {
+  return '<div class="patient-date-nav"><button type="button" class="icon-button" data-action="patient-day" data-id="-1" aria-label="Previous day">' + icon('left') + '</button><label>Viewing date<input id="patientDay" type="date" value="' + esc(day) + '" /></label><button type="button" class="icon-button" data-action="patient-day" data-id="1" aria-label="Next day">' + icon('chevron') + '</button></div>';
+}
+function roundForDay(day) {
+  return wardPlan.filter(item => { const e = encounters[item.encounterId]; return e && e.startedAt?.slice(0,10) <= day && e.status !== 'Complete'; });
+}
+function renderBalancedHome() {
+  const round = state.homeNowList === 'round';
+  const day = state.patientDay || '2026-10-02';
+  const next = round ? roundForDay(day)[0] : Object.entries(encounters).filter(([,e])=>e.kind === 'Appointment encounter' && e.startedAt?.slice(0,10) === day).sort((a,b)=>a[1].startedAt.localeCompare(b[1].startedAt)).map(([id,e])=>({encounterId:id,patientId:e.patientId,time:e.startedAt.slice(11,16)}))[0];
+  const p = next && patients[next.patientId];
+  const source = session('s-linda-1');
+  const todo = source ? workForPatient(source.patientId).filter(item=>workStatus(item) === 'todo') : [];
+  const switcher = '<div class="today-modes home-now-modes" role="group" aria-label="Choose patient list">' + [['appointments','Appointments'],['round','Round']].map(([id,label])=>'<button type="button" class="today-mode' + ((round ? 'round' : 'appointments') === id ? ' selected' : '') + '" aria-pressed="' + ((round ? 'round' : 'appointments') === id) + '" data-action="home-now-list" data-id="' + id + '">' + label + '</button>').join('') + '</div>';
+  const nextRow = p ? '<div class="card"><button type="button" class="home-row" data-action="history-patient" data-id="' + esc(next.patientId) + '">' + initials(p) + '<span class="row-main"><span class="row-title">' + esc(p.name) + '</span><span class="row-sub">' + esc(round ? next.ward + ' · Room ' + next.room : next.time + ' · ' + encounters[next.encounterId].title) + '</span></span><span class="row-arrow">' + icon('chevron') + '</span></button></div>' : '<p class="home-muted">No patients on this list.</p>';
+  const work = todo.length ? '<div class="home-finish-group"><div class="home-finish-heading"><strong>' + esc(homePatientName()) + '</strong><span>' + todo.length + ' to do</span></div><div class="home-finish-titles">' + '<button type="button" class="text-action" data-action="balanced-work" data-id="' + esc(todo[0].id) + '">' + esc(todo.slice(0,2).map(item=>item.title).join(' · ')) + ' ' + icon('chevron') + '</button>' + '</div><div class="home-inline-actions">' + huiButton('Ask Heidi to help','balanced-ask',{variant:'secondary'}) + '</div></div>' : '<p class="home-muted">No outstanding to-dos for this patient.</p>';
+  return '<div class="home-concept home-balanced">' + topbar() + '<div class="hero"><h1>Hello, Cara</h1><div class="hero-subtitle">Your patients and work</div></div>' + homeSection('Up next',switcher + patientDateControl(day) + nextRow,'<button type="button" class="text-action" data-action="home-now-open-list">View list ' + icon('chevron') + '</button>') + homeSection('To finish',work,'<button type="button" class="text-action" data-action="nav-tasks">All work ' + icon('chevron') + '</button>') + homeSection('Ready to review','<div class="card">' + homeDetailButton('instructions','Patient instructions',homePatientName() + ' · Draft ready','file','Review before sending · Example') + '</div>') + '<p class="home-example-note">Agent outputs are examples. Nothing has been sent.</p></div>';
+}
+
+function renderNowPatientWork() {
+  if (state.homeConcept !== 'now') return '';
+  const items = workForPatient(state.patientId);
+  return '<section class="home-section"><div class="home-section-heading"><h2>Work for this patient</h2></div>' +
+    (items.length ? '<div class="work-list">' + items.map(renderWorkItem).join('') + '</div>' : '<p class="home-muted">No work linked to this patient yet.</p>') +
+    (items.some(item=>item.owner === 'heidi') ? '<p class="patient-provenance">Heidi activity is an example · No agent is running</p>' : '') + '</section>';
+}
+
+function renderHomeConcept() {
+  if (state.homeConcept === 'now') return renderNowHome();
+  if (['patient','delegated','capture','visit','leave'].includes(state.homeConcept)) return renderWorkflowHome().replaceAll('Linda Thompson',esc(homePatientName()));
+  const type = state.homeConcept || 'apps', phase = state.homePhase || 'prepare', ai = type === 'agents' || (type === 'rhythm' && state.homeAgents !== false);
+  const title = type === 'apps' ? 'Your day, in view.' : type === 'agents' ? 'A little less to do.' : phase === 'prepare' ? 'Good morning, Cara' : phase === 'during' ? 'One patient at a time.' : 'Let’s wrap up.';
+  const sub = type === 'apps' ? 'Friday 2 October' : type === 'agents' ? 'Two drafts are ready for your review.' : phase === 'prepare' ? 'Friday 2 October · Before your first patient' : phase === 'during' ? 'Friday 2 October · During your day' : 'Friday 2 October · Before you finish';
+  let body = '';
+  if (type === 'apps') body = homeContinue() + homeTasks() + homePatients();
+  if (type === 'agents') body = '<p class="home-demo-label">Example agent activity</p>' + homeReady() + homeRoutines() + homeSection('Suggested next step', '<div class="home-suggestion"><span class="home-symbol">' + icon('pen') + '</span><div><h3>Turn the plan into instructions</h3><p>Use the morning ward session to prepare a patient-friendly draft.</p>' + huiButton('Ask Heidi to prepare','home-ask',{variant:'secondary',glyph:'plus'}) + '</div></div>') + homePatients('Coming up',1) + homeCompleted();
+  if (type === 'rhythm') {
+    const switcher = '<div class="today-modes home-phase" role="group" aria-label="Stage of your day">' + [['prepare','Prepare'],['during','See patients'],['finish','Wrap up']].map(([id,label]) => '<button type="button" class="today-mode' + (phase === id ? ' selected' : '') + '" data-action="home-phase" data-id="' + id + '" aria-pressed="' + (phase === id) + '">' + label + '</button>').join('') + '</div>';
+    const brief = homeSection('Before you begin', '<div class="home-brief"><div class="home-brief-label"><img src="./assets/heidi-symbol-bark.svg" alt="" /><span>Morning preparation</span><span class="home-state">Ready</span></div><h2>Your day is ready to review.</h2><p>Today’s patients, recent notes and the work you carried forward.</p>' + huiButton('Open morning brief','home-detail',{variant:'secondary','data-id':'brief',glyph:'file'}) + '<small>Example routine · Prepared at 07:15</small></div>');
+    if (phase === 'prepare') body = switcher + (ai ? brief : homeTasks()) + homePatients('Your day ahead') + (ai ? homeReady() : homeContinue());
+    if (phase === 'during') body = switcher + homePatients('Next up',3) + homeContinue() + (ai ? homeSection('While you see patients', '<div class="home-quiet-work">' + icon('clock') + '<div><span class="row-title">Heidi is preparing a draft</span><span class="row-sub">Patient instructions · Example activity</span></div></div>') + homeReady() : homeTasks());
+    if (phase === 'finish') body = switcher + (ai ? homeReady() : homeTasks()) + homeSection('Before you leave', '<div class="card">' + homeDetailButton('carry','Carry work into tomorrow','Review remaining personal to-dos','list') + '</div>') + (ai ? homeCompleted() : homeContinue()) + homePatients('Today’s patients',1);
+  }
+  const markup = '<div class="home-concept home-' + type + '">' + topbar() + '<div class="hero"><h1>' + title + '</h1><div class="hero-subtitle">' + sub + '</div></div>' + body + '<p class="home-example-note">Example day · 2 October 2026' + (ai ? '<br>Agent work and routines are illustrative.' : '<br>Example checklist changes last for this visit.') + '</p></div>';
+  return markup.replaceAll('Linda Thompson', esc(homePatientName()));
+}
+function renderHomeDetail() {
+  const id = state.homeDetailId;
+  const details = {
+    instructions:['Patient instructions',homePatientName() + ' · Ready to review','Example draft awaiting review\nThe instructions would appear here for you to check against the source session.','This is an illustrative review state. Submission and approval are not connected; nothing has been sent.'],
+    prechart:['Prechart','Example preparation','Review before seeing the patient\nRecent session notes and clinician-curated context would appear here, with their sources.','Illustrative preparation. Open the source session to inspect existing context.'],
+    recipient:['Choose a referral recipient','Needs your input','Recipient not selected\nThe draft is waiting for you to choose a destination before it can be sent.','This homepage preview does not send referrals or select recipients.'],
+    desktop:['Documentation on your desktop','Waiting for your desktop','Next step\nContinue on your connected desktop to review the intended destination and proposed changes.','Example handoff only. No computer-use task is running and no external record was changed.'],
+    urgent:['Review flagged follow-up','Marked urgent by you · Example','A flagged task stays visible\nOpen its source context and review the outstanding follow-up.','Illustrative clinician-marked priority, not an automatically detected clinical alert.'],
+    followup:['GP follow-up draft','Linda Thompson · Ready to review','Example draft\nFollow-up summary based on the morning ward review.\n\nFor review\nReview morning results and reassess the discharge plan with Linda and her family.','Draft prepared in this example. Nothing has been sent.'],
+    handover:['Handover draft','Ward 4B · Ready to review','For the next team\nLinda Thompson: review morning results and reassess the discharge plan.\n\nSource\nMorning ward review · 2 October, 8:12 AM.','Illustrative extract, not a complete ward handover.'],
+    brief:['Morning preparation','Completed · 07:15','Your day\n10 appointments and 10 round patients are available in this example.\n\nPick up the context\nOpen the relevant encounter to review recent sessions before seeing each patient.','Example routine. Next run: tomorrow at 07:15.'],
+    running:['Patient instructions','In progress · Example activity','Preparing a draft\nThe routine would use the source session to prepare instructions for clinician review.','No agent is running in this prototype.'],
+    blocked:['Tomorrow’s preparation','Needs attention','Calendar unavailable\nThe last attempt could not read the calendar. No updated preparation was produced.','In a connected product, restore access before retrying.'],
+    carry:['Carry into tomorrow','Your remaining work','Review your to-dos\nChoose what still needs attention before finishing your day.','This homepage concept does not change due dates or hand work to another clinician.']
+  };
+  const d = (details[id] || details.brief).map(text => text.replaceAll('Linda Thompson',homePatientName()));
+  const source = ['instructions','followup','handover','running','prechart','recipient','urgent'].includes(id) && session('s-linda-1') ? '<div class="home-detail-source">' + huiButton('View source session','home-source',{glyph:'waves'}) + '</div>' : '';
+  const sourceSession = session('s-linda-1');
+  const verification = ['instructions','followup','handover','running','prechart','recipient','urgent'].includes(id) && sourceSession ? renderPatientContext(sourceSession.patientId,sourceSession.encounterId,{compact:true,session:sourceSession}) : '';
+  return huiSheet(d[0],d[1], '<div class="home-detail-body">' + verification + renderDocumentBody(d[2]) + '<p class="home-detail-notice">' + esc(d[3]) + '</p>' + source + '</div>', 'home-detail-sheet');
+}
+
 function renderToday() {
+  if (isHomepageExploration && !state.homeConcept) return renderHomeConcept();
+  if (isHomepageExploration && state.homeConcept === 'balanced') return renderBalancedHome();
+  if (state.homeConcept) return renderHomeConcept();
   const modes = [['appointments', 'Appointments', appointmentPlan.length], ['round', 'Round', wardPlan.length]];
   const switcher = '<div class="today-modes" role="tablist" aria-label="Today view">' + modes.map(([mode, label, count]) => '<button type="button" role="tab" aria-selected="' + (state.todayMode === mode) + '" class="today-mode ' + (state.todayMode === mode ? 'selected' : '') + '" data-action="set-today-mode" data-mode="' + mode + '">' + label + (count == null ? '' : '<span>' + count + '</span>') + '</button>').join('') + '</div>';
   const heading = [topbar(), '<div class="hero"><h1>Hello, Cara</h1><div class="hero-subtitle">Friday 2 October</div></div>', switcher];
@@ -303,7 +466,33 @@ function renderWorkChange(focusSelector, revealFocus = false) {
   document.querySelector('.app-scroll').scrollTop = scrollTop;
   document.querySelector(focusSelector)?.focus({ preventScroll: !revealFocus });
 }
+function renderIdeaPatients() {
+  const mode = state.patientView || 'appointments', day = state.patientDay || '2026-10-02';
+  const query = state.patientSearch.trim().toLowerCase();
+  const matches = id => (patients[id].name + ' ' + patients[id].identifier).toLowerCase().includes(query);
+  const modes = [['appointments','Appointments'],['round','Round']];
+  const switcher = '<div class="today-modes patient-view-modes" role="group" aria-label="Patient view">' + modes.map(([id,label]) => '<button type="button" class="today-mode' + (id === mode ? ' selected' : '') + '" aria-pressed="' + (id === mode) + '" data-action="patient-view" data-id="' + id + '">' + label + '</button>').join('') + '</div>';
+  const header = topbar() + '<div class="screen-heading patient-list-heading"><h1>' + (mode === 'all' ? 'All patients' : 'Patients') + '</h1><button type="button" class="text-action" data-action="patient-directory">' + (mode === 'all' ? 'Back to list' : 'View all') + '</button></div>' + (mode === 'all' ? '' : switcher) + '<input class="search-input" id="patientsTabSearch" type="search" placeholder="Search name or Heidi ID" aria-label="Search patients" value="' + esc(state.patientSearch) + '" />';
+  if (mode === 'appointments') {
+    const entries = Object.entries(encounters).filter(([,e])=>e.kind === 'Appointment encounter' && e.startedAt?.slice(0,10) === day && matches(e.patientId)).sort((a,b)=>a[1].startedAt.localeCompare(b[1].startedAt));
+    return header + patientDateControl(day) + '<p class="patient-provenance">Example schedule · 2 October has 10 appointments</p><div class="section-heading"><h2>' + esc(prettyDate(day)) + '</h2><span>' + entries.length + ' appointments</span></div>' + (entries.length ? '<div class="card">' + entries.map(([id,e])=>appointmentRow(id,e.startedAt.slice(11,16) || '—')).join('') + '</div>' : '<div class="today-empty">' + (query ? 'No appointments match this search.' : 'No appointments on this date.') + '</div>');
+  }
+  if (mode === 'round') {
+    const rows = roundForDay(day).filter(item=>matches(item.patientId) && (state.wardFilter === 'All wards' || item.ward === state.wardFilter));
+    return header + patientDateControl(day) + '<p class="patient-provenance">Example list from admission dates · Not a historical roster</p><div class="today-view-intro"><div><h2>Your round</h2><p>' + esc(prettyDate(day)) + '</p></div><span>' + rows.length + ' patients</span></div><div class="filter-row" aria-label="Filter round by ward">' + ['All wards',...new Set(wardPlan.map(item=>item.ward))].map(label=>'<button type="button" class="filter-chip' + (state.wardFilter === label ? ' selected' : '') + '" data-action="filter-ward" data-filter="' + esc(label) + '">' + esc(label) + '</button>').join('') + '</div>' + (rows.length ? [...new Set(rows.map(item=>item.ward))].map(ward=>'<div class="section-heading"><h2>' + esc(ward) + '</h2></div><div class="card">' + rows.filter(item=>item.ward === ward).map(item=>wardRow(item,true)).join('') + '</div>').join('') : '<div class="today-empty">No patients match this round filter.</div>');
+  }
+  const people = Object.entries(patients).filter(([id])=>matches(id)).sort((a,b)=>a[1].name.localeCompare(b[1].name));
+  return header + '<div class="section-heading"><h2>All patients in Heidi</h2><span>' + people.length + '</span></div>' + (people.length ? '<div class="card">' + people.map(([id,p])=>{
+    const es = encountersForPatient(id);
+    const contexts = es.filter(([,e])=>e.kind === 'Inpatient encounter' && e.status !== 'Complete').map(([,e])=>'Active inpatient · ' + (e.location || 'Location not added'));
+    const appointments = es.filter(([,e])=>e.kind === 'Appointment encounter');
+    if (appointments.length) contexts.push('Appointment · ' + prettyDate(appointments[0][1].startedAt?.slice(0,10)));
+    return '<button type="button" class="history-row" data-action="history-patient" data-id="' + esc(id) + '">' + initials(p) + '<span class="row-main"><span class="row-title">' + esc(p.name) + '</span><span class="row-sub">' + esc(p.identifier) + '</span>' + (contexts.length ? contexts : ['Heidi profile · No active care listed']).map(text=>'<span class="row-third">' + esc(text) + '</span>').join('') + '</span><span class="row-arrow">' + icon('chevron') + '</span></button>';
+  }).join('') + '</div>' : '<div class="today-empty">No patients match this search.</div>');
+}
+
 function renderPatients() {
+  if (isHomepageExploration) return renderIdeaPatients();
   const query = state.patientSearch.trim().toLowerCase();
   const onSchedule = new Set(appointmentPlan.map(item => item.patientId));
   const onRound = new Set(wardPlan.map(item => item.patientId));
@@ -344,7 +533,7 @@ function renderHistory() {
   return topbar('Patient') + renderPatientContext(state.patientId, null, {scribe:true}) +
     '<section class="patient-overview"><div class="patient-section-title"><h2>Patient context</h2>' + huiButton(details.context ? 'Edit context' : 'Add context','edit-patient-context',{variant:'ghost',size:'sm'}) + '</div>' +
     '<p class="patient-context-copy' + (details.context?.length > 220 && state.expandedContextPatient !== state.patientId ? ' patient-context-clamped' : '') + '" id="patientContextText">' + esc(details.context || 'Add why you see this patient and what matters for their ongoing care.') + '</p>' + (details.context?.length > 220 ? huiButton(state.expandedContextPatient === state.patientId ? 'Show less' : 'Read more','toggle-patient-context',{variant:'ghost',size:'sm','aria-expanded':state.expandedContextPatient === state.patientId,'aria-controls':'patientContextText'}) : '') + '<p class="patient-provenance">Clinician-managed · Saved with patient</p></section>' +
-    '<button type="button" class="patient-details-link" data-action="patient-details"><span><strong>Patient details</strong><small>History, medications, allergies and more</small></span>' + icon('chevron') + '</button>' +
+    renderNowPatientWork() + '<button type="button" class="patient-details-link" data-action="patient-details"><span><strong>Patient details</strong><small>History, medications, allergies and more</small></span>' + icon('chevron') + '</button>' +
     '<div class="section-heading"><h2>Encounter</h2><span>' + es.length + '</span></div>' +
     (es.length ? '<div class="card patient-encounters">' + es.map(([id,e]) => '<button type="button" class="patient-encounter-row" data-action="open-encounter" data-id="' + esc(id) + '"><span class="row-main"><span class="patient-encounter-type">' + esc(encounterTypeLabel(e)) + ' · ' + esc(e.status) + '</span><strong>' + esc(e.title) + '</strong><span class="row-sub">' + esc(encounterStartLabel(e)) + ' · ' + esc(e.identifier) + '</span><span class="row-sub">' + esc(e.location || 'Location not added') + ' · ' + sessionsForEncounter(id).length + (sessionsForEncounter(id).length === 1 ? ' session' : ' sessions') + '</span></span>' + icon('chevron') + '</button>').join('') + '</div>' : '<div class="today-empty">No encounters yet. Start Scribe or add an encounter from +.</div>');
 }
@@ -556,11 +745,12 @@ let ticker = null;
 function updateTicker() { clearInterval(ticker); if (state.recording && !state.paused) ticker = setInterval(() => { const el = document.getElementById('recordTime'); if (el) el.textContent = formatElapsed(); }, 500); }
 function render() {
   const pages = { today: renderToday, worklist: renderWorklist, sessions: renderSessions, tasks: renderTasks, patients: renderPatients, encounter: renderEncounter, history: renderHistory, session: renderSession, record: renderRecord, search: renderSearch };
-  const modals = { 'patient-details':renderPatientDetails, 'edit-patient-details':renderPatientDetailsEdit, 'edit-patient-context':renderPatientContextEdit, 'new-session-context': renderNewSessionContext, 'document-actions': renderDocumentActions, 'dictate-session': renderSessionDictation, 'documents': renderDocumentPicker, 'new-document': renderNewDocument, 'edit-document': renderEditDocument, 'session-details': renderSessionDetails, 'patient-picker': renderPatientPicker, 'new-patient': renderNewPatient, 'encounter-picker': renderEncounterPicker, 'new-encounter': renderNewEncounter, 'quick-add': renderQuickAdd, 'encounter-patient': renderEncounterPatientPicker, 'new-work': renderNewWork };
+  const modals = { 'home-detail':renderHomeDetail, 'patient-details':renderPatientDetails, 'edit-patient-details':renderPatientDetailsEdit, 'edit-patient-context':renderPatientContextEdit, 'new-session-context': renderNewSessionContext, 'document-actions': renderDocumentActions, 'dictate-session': renderSessionDictation, 'documents': renderDocumentPicker, 'new-document': renderNewDocument, 'edit-document': renderEditDocument, 'session-details': renderSessionDetails, 'patient-picker': renderPatientPicker, 'new-patient': renderNewPatient, 'encounter-picker': renderEncounterPicker, 'new-encounter': renderNewEncounter, 'quick-add': renderQuickAdd, 'encounter-patient': renderEncounterPatientPicker, 'new-work': renderNewWork };
   document.getElementById('app').classList.toggle('session-focused', state.screen === 'session');
   document.getElementById('app').innerHTML = '<div class="app-scroll">' + pages[state.screen]() + '</div>' + (state.screen === 'session' ? '' : nav()) + askBar() + (state.recording && state.screen !== 'record' ? '<button type="button" class="mini-player" data-action="return-record">' + icon('waves') + '<span>Recording in progress</span><strong>' + formatElapsed() + '</strong></button>' : '') + (modals[state.modal] ? modals[state.modal]() : '') + (state.chatOpen ? renderChat() : '') + (state.toast ? '<div class="toast" role="status">' + esc(state.toast) + '</div>' : '');
   const activeSheet = document.querySelector('.hui-sheet');
   if (activeSheet) {
+    if (state.modal === 'home-detail') document.querySelector('#app > .nav-shell').inert = true;
     document.querySelectorAll('#app > .app-scroll, #app > .ask-shell').forEach(el => { el.inert = true; });
     if (!isEmbeddedPreview) activeSheet.querySelector('button, input, textarea')?.focus({ preventScroll: true });
   }
@@ -613,6 +803,12 @@ function newSession(encounterId, patientId = null) {
   navigate('record', { sessionId: id, encounterId: encounterId || null, patientId: patientId });
 }
 function closeCurrentModal() {
+  if (state.modal === 'home-detail') {
+    state.modal = null; render();
+    document.querySelector('.app-scroll').scrollTop = state.homeReturnScroll || 0;
+    document.querySelector('[data-action="home-detail"][data-id="' + state.homeDetailId + '"]')?.focus({preventScroll:true});
+    return;
+  }
     if (['patient-details','edit-patient-details','edit-patient-context'].includes(state.modal)) {
       const action = state.modal === 'edit-patient-context' ? 'edit-patient-context' : 'patient-details';
       const scroll = document.querySelector('.app-scroll').scrollTop;
@@ -631,6 +827,22 @@ document.addEventListener('click', ev => {
   const target = ev.target.closest('[data-action]');
   if (!target) return;
   const a = target.dataset.action, id = target.dataset.id;
+  if (a === 'balanced-work') { navigate('tasks',{expandedWorkId:id}); return; }
+  if (a === 'balanced-ask') { state.chatContext = homePatientName() + ' · Morning ward review'; state.chatDraft = 'Help me finish the outstanding work for ' + homePatientName() + '. Review the source session and suggest which preparation you can do; leave clinical decisions for me.'; state.chatOpen = true; render(); document.getElementById('chatInput')?.focus(); return; }
+  if (a === 'home-now-list') { state.homeNowList = id; const scroll = document.querySelector('.app-scroll').scrollTop; render(); document.querySelector('.app-scroll').scrollTop = scroll; document.querySelector('[data-action="home-now-list"][data-id="' + id + '"]')?.focus({preventScroll:true}); return; }
+  if (a === 'home-now-open-list') { navigate('patients', {patientView:state.homeNowList || 'appointments',patientSearch:''}); return; }
+  if (a === 'home-now-round') { navigate('patients', {patientView:'round'}); return; }
+  if (a === 'patient-directory') { if (state.patientView === 'all') state.patientView = state.patientDirectoryReturn || 'appointments'; else { state.patientDirectoryReturn = state.patientView || 'appointments'; state.patientView = 'all'; } state.patientSearch = ''; render(); document.querySelector('[data-action="patient-directory"]')?.focus({preventScroll:true}); return; }
+  if (a === 'patient-view') { state.patientView = id; state.patientSearch = ''; render(); document.querySelector('[data-action="patient-view"][data-id="' + id + '"]')?.focus(); return; }
+  if (a === 'patient-day') { const day = new Date((state.patientDay || '2026-10-02') + 'T12:00:00Z'); day.setUTCDate(day.getUTCDate() + Number(id)); state.patientDay = day.toISOString().slice(0,10); render(); document.querySelector('[data-action="patient-day"][data-id="' + id + '"]')?.focus(); return; }
+  if (a === 'home-visit-stage') { state.homeVisitStage = id; render(); document.querySelector('[data-action="home-visit-stage"][data-id="' + id + '"]')?.focus({preventScroll:true}); return; }
+  if (a === 'home-phase') { state.homePhase = id; render(); document.querySelector('[data-action="home-phase"][data-id="' + id + '"]')?.focus({preventScroll:true}); return; }
+  if (a === 'home-list-mode') { const scroll = document.querySelector('.app-scroll').scrollTop; state.homeListMode = id; render(); document.querySelector('.app-scroll').scrollTop = scroll; document.querySelector('[data-action="home-list-mode"][data-id="' + id + '"]')?.focus({preventScroll:true}); return; }
+  if (a === 'home-all-patients') { navigate('patients', {patientView:state.homeListMode === 'round' ? 'round' : 'appointments',patientDay:'2026-10-02',patientSearch:'',wardFilter:'All wards'}); return; }
+  if (a === 'home-task') { const scroll = document.querySelector('.app-scroll').scrollTop; state.homeDone = state.homeDone || {}; state.homeDone[id] = !state.homeDone[id]; render(); document.querySelector('.app-scroll').scrollTop = scroll; document.querySelector('[data-action="home-task"][data-id="' + id + '"]')?.focus({preventScroll:true}); return; }
+  if (a === 'home-detail') { state.homeReturnScroll = document.querySelector('.app-scroll').scrollTop; state.homeDetailId = id; state.modal = 'home-detail'; render(); return; }
+  if (a === 'home-source') { const source = session('s-linda-1'); if (!source) return; state.modal = null; navigate('session', {sessionId:source.id,patientId:source.patientId,encounterId:source.encounterId}); return; }
+  if (a === 'home-ask') { state.modal = null; state.chatContext = 'Today'; state.chatDraft = 'Prepare patient instructions from the morning ward review for ' + homePatientName() + ' for me to review.'; state.chatOpen = true; render(); document.getElementById('chatInput')?.focus(); return; }
   if (['patient-details','edit-patient-details','edit-patient-context'].includes(a)) { state.modal = a; render(); return; }
   if (a === 'toggle-patient-context') { state.expandedContextPatient = state.expandedContextPatient === state.patientId ? null : state.patientId; render(); document.querySelector('[data-action="toggle-patient-context"]')?.focus({preventScroll:true}); return; }
   if (a === 'patient-scribe') {
@@ -753,6 +965,15 @@ document.addEventListener('click', ev => {
   if (a === 'close-modal') closeCurrentModal();
 });
 document.addEventListener('submit', ev => {
+  if (ev.target.id === 'homeCaptureForm') {
+    ev.preventDefault();
+    const form = new FormData(ev.target), title = String(form.get('title') || '').trim();
+    if (!title) { document.getElementById('homeCaptureText').focus(); return; }
+    state.homeCaptured = state.homeCaptured || [];
+    state.homeCaptured.push({title,context:String(form.get('context') || 'General') + ' · Added by you'});
+    render(); document.getElementById('homeCaptureText').focus({preventScroll:true}); return;
+  }
+
   if (ev.target.id === 'patientContextForm') {
     ev.preventDefault(); const id = state.patientId;
     patientDetails[id] = {...patientDetails[id],context:ev.target.elements.context.value.trim()};
@@ -893,3 +1114,5 @@ document.addEventListener('keydown', ev => {
   if (ev.shiftKey && document.activeElement === first) { ev.preventDefault(); last?.focus(); }
   else if (!ev.shiftKey && document.activeElement === last) { ev.preventDefault(); first?.focus(); }
 });
+
+document.addEventListener('change', event => { if (event.target.id === 'patientDay' && event.target.value) { state.patientDay = event.target.value; render(); document.getElementById('patientDay')?.focus(); } });

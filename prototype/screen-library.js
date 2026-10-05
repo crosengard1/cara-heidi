@@ -1,5 +1,37 @@
 /* Review navigation around the prototype; all entries reuse the app's renderers. */
 const libraryEntries = [
+  {id:'home-balanced',group:'Homepage options',label:'10 · Patients, work and review',screen:'today',data:{homeConcept:'balanced'}},
+  {id:'home-instructions',group:'Homepage examples',label:'Patient instructions review',screen:'today',modal:'home-detail',data:{homeConcept:'balanced',homeDetailId:'instructions'}},
+  ... (isHomepageExploration ? [
+    {id:'patients-appointments',group:'Patient ideas',label:'Appointments by day',screen:'patients',data:{patientView:'appointments',patientDay:'2026-10-02'}},
+    {id:'patients-round',group:'Patient ideas',label:'Active inpatient round',screen:'patients',data:{patientView:'round'}},
+    {id:'patients-all',group:'Patient ideas',label:'All patients directory',screen:'patients',data:{patientView:'all'}},
+    {id:'patients-empty-day',group:'Patient ideas',label:'Day without appointments',screen:'patients',data:{patientView:'appointments',patientDay:'2026-10-03'}}
+  ] : []),
+  { id:'home-apps', group:'Homepage options', label:'1 · My day — Apps-owned', screen:'today', data:{homeConcept:'apps'} },
+  { id:'home-agents', group:'Homepage options', label:'2 · Ready for you — Agents', screen:'today', data:{homeConcept:'agents'} },
+  { id:'home-prepare', group:'Homepage options', label:'3 · Your day — Prepare', screen:'today', data:{homeConcept:'rhythm',homePhase:'prepare',homeAgents:true} },
+  { id:'home-during', group:'Homepage options', label:'3 · Your day — See patients', screen:'today', data:{homeConcept:'rhythm',homePhase:'during',homeAgents:true} },
+  { id:'home-finish', group:'Homepage options', label:'3 · Your day — Wrap up', screen:'today', data:{homeConcept:'rhythm',homePhase:'finish',homeAgents:true} },
+  { id:'home-rhythm-apps', group:'Homepage options', label:'3 · Your day — Apps only', screen:'today', data:{homeConcept:'rhythm',homePhase:'prepare',homeAgents:false} },
+  { id:'home-patient', group:'Homepage options', label:'4 · This patient, then next', screen:'today', data:{homeConcept:'patient',homeVisitStage:'after'} },
+  { id:'home-delegated', group:'Homepage options', label:'5 · Heidi is taking care of', screen:'today', data:{homeConcept:'delegated'} },
+  { id:'home-capture', group:'Homepage options', label:'6 · Get it out of your head', screen:'today', data:{homeConcept:'capture'} },
+  { id:'home-now-patient', group:'Homepage examples', label:'9 · Patient and related work', screen:'history', data:{homeConcept:'now',patientId:'linda'} },
+  { id:'home-visit', group:'Homepage options', label:'7 · Finish this visit', screen:'today', data:{homeConcept:'visit'} },
+  { id:'home-leave', group:'Homepage options', label:'8 · Leave today in a good place', screen:'today', data:{homeConcept:'leave'} },
+  { id:'home-now', group:'Homepage options', label:'9 · Pick up where you are', screen:'today', data:{homeConcept:'now'} },
+  { id:'home-before', group:'Homepage examples', label:'Before seeing the patient', screen:'today', data:{homeConcept:'patient',homeVisitStage:'before'} },
+  { id:'home-prechart', group:'Homepage examples', label:'Prechart preview', screen:'today', modal:'home-detail', data:{homeConcept:'patient',homeDetailId:'prechart'} },
+  { id:'home-recipient', group:'Homepage examples', label:'Recipient needed', screen:'today', modal:'home-detail', data:{homeConcept:'delegated',homeDetailId:'recipient'} },
+  { id:'home-desktop', group:'Homepage examples', label:'Desktop handoff', screen:'today', modal:'home-detail', data:{homeConcept:'delegated',homeDetailId:'desktop'} },
+  { id:'home-urgent', group:'Homepage examples', label:'Flagged work', screen:'today', modal:'home-detail', data:{homeConcept:'leave',homeDetailId:'urgent'} },
+  { id:'home-draft', group:'Homepage examples', label:'Ready draft', screen:'today', modal:'home-detail', data:{homeConcept:'agents',homeDetailId:'followup'} },
+  { id:'home-handover', group:'Homepage examples', label:'Handover draft', screen:'today', modal:'home-detail', data:{homeConcept:'agents',homeDetailId:'handover'} },
+  { id:'home-carry', group:'Homepage examples', label:'Carry forward', screen:'today', modal:'home-detail', data:{homeConcept:'rhythm',homePhase:'finish',homeDetailId:'carry'} },
+  { id:'home-routine', group:'Homepage examples', label:'Routine result', screen:'today', modal:'home-detail', data:{homeConcept:'agents',homeDetailId:'brief'} },
+  { id:'home-running', group:'Homepage examples', label:'Routine in progress', screen:'today', modal:'home-detail', data:{homeConcept:'agents',homeDetailId:'running'} },
+  { id:'home-blocked', group:'Homepage examples', label:'Routine needs attention', screen:'today', modal:'home-detail', data:{homeConcept:'agents',homeDetailId:'blocked'} },
   { id: 'today-appointments', group: 'Today', label: 'Appointments', screen: 'today', data: { todayMode: 'appointments' } },
   { id: 'today-round', group: 'Today', label: 'Round', screen: 'today', data: { todayMode: 'round' } },
   { id: 'appointments-list', group: 'Today', label: 'Full appointment list', screen: 'worklist', data: { worklistType: 'appointments' } },
@@ -33,13 +65,38 @@ const libraryEntries = [
   { id: 'create-inpatient', group: 'Create & assign', label: 'Create inpatient encounter', screen: 'session', modal: 'new-encounter', sample: 'patient', data: { newEncounterType: 'inpatient' } },
   { id: 'ask-heidi', group: 'Across the app', label: 'Ask Heidi', screen: 'today', data: { chatOpen: true, chatContext: 'Today' } },
   { id: 'search', group: 'Across the app', label: 'Search', screen: 'search' }
-];
+].filter(entry => isHomepageExploration || !entry.id.startsWith('home-'));
+// Keep the current journey prominent; earlier explorations remain searchable.
+if (isHomepageExploration) {
+  const sections = {
+    'Home': ['home-apps'],
+    'Patients': ['patients-appointments','patients-round','patients-all','patient-history'],
+    'Work & review': ['work','todo-detail','agent-detail','home-instructions','ask-heidi'],
+    'Sessions & encounters': ['sessions','session-linked','appointment','inpatient','completed'],
+    'More states & tools': [],
+    'Earlier home explorations': []
+  };
+  const names = {'home-apps':'My day · Apps-owned', 'home-balanced':'Patients, work and review','patients-appointments':'Appointments · By date','patients-round':'Round · By date','patients-all':'View all patients','patient-history':'Patient profile','work':'Work overview','todo-detail':'To-do details','agent-detail':'Work with Heidi','home-instructions':'Ready for review','session-linked':'Session workspace'};
+  libraryEntries.forEach(entry => {
+    const group = Object.keys(sections).find(key=>sections[key].includes(entry.id));
+    entry.group = group || (entry.id.startsWith('home-') ? 'Earlier home explorations' : 'More states & tools');
+    entry.label = names[entry.id] || entry.label.replace(/^\d+ · /,'');
+  });
+  const order = Object.keys(sections);
+  libraryEntries.sort((a,b)=>order.indexOf(a.group)-order.indexOf(b.group) || (sections[a.group].indexOf(a.id) - sections[b.group].indexOf(b.id)));
+}
 const libraryLayout = window.matchMedia('(max-width: 740px)');
 let libraryOpen = !libraryLayout.matches;
 const libraryPanel = document.getElementById('screenLibrary');
 const libraryList = document.getElementById('libraryScreens');
 
 function currentLibraryId() {
+  if (isHomepageExploration && state.screen === 'today' && !state.homeConcept && !state.modal && !state.chatOpen) return 'home-apps';
+  if (isHomepageExploration && state.screen === 'patients' && !state.modal && !state.chatOpen) return state.patientView === 'round' ? 'patients-round' : state.patientView === 'all' ? 'patients-all' : state.patientDay === '2026-10-03' ? 'patients-empty-day' : 'patients-appointments';
+  if (state.homeConcept === 'now' && state.screen === 'history' && !state.modal && !state.chatOpen) return 'home-now-patient';
+  if (state.screen === 'today' && state.homeConcept === 'patient' && state.homeVisitStage === 'before' && !state.modal && !state.chatOpen) return 'home-before';
+  if (state.modal === 'home-detail') return ({instructions:'home-instructions',prechart:'home-prechart',recipient:'home-recipient',desktop:'home-desktop',urgent:'home-urgent',handover:'home-handover',carry:'home-carry',followup:'home-draft',brief:'home-routine',running:'home-running',blocked:'home-blocked'})[state.homeDetailId] || 'home-agents';
+  if (state.screen === 'today' && state.homeConcept && !state.modal && !state.chatOpen) return state.homeConcept === 'rhythm' ? (state.homeAgents === false && state.homePhase === 'prepare' ? 'home-rhythm-apps' : 'home-' + (state.homePhase || 'prepare')) : 'home-' + state.homeConcept;
   if (state.modal === 'patient-details') return 'patient-details';
   if (state.modal === 'edit-patient-context') return 'patient-context-edit';
   if (state.modal === 'edit-patient-details') return 'patient-details-edit';
@@ -70,8 +127,17 @@ function currentLibraryId() {
 
 function syncLibrary() {
   const id = currentLibraryId();
+  const clockLabel = document.querySelector('.phone-status > span:first-child');
+  if (clockLabel) clockLabel.textContent = state.homeConcept === 'leave' ? '17:30' : state.homeConcept === 'rhythm' ? ({prepare:'7:30',during:'11:30',finish:'17:30'})[state.homePhase || 'prepare'] : '9:41';
+  const selector = document.getElementById('homeConceptSelect');
+  if (selector) {
+    selector.value = state.homeConcept || (isHomepageExploration ? 'apps' : 'original');
+    document.getElementById('homeDependency').textContent = state.homeConcept === 'now' ? 'Home → Patients · Existing work records · Agent activity illustrative' : state.homeConcept === 'agents' ? 'Agent examples · No connected execution' : state.homeConcept === 'rhythm' ? 'Day stages · Optional agent examples' : ['apps','capture'].includes(state.homeConcept) ? 'Apps-owned · No new agent dependency' : state.homeConcept ? 'Workflow concept · Example work and agent states' : 'Existing prototype';
+    document.getElementById('homeAgentControl').hidden = state.homeConcept !== 'rhythm';
+    document.getElementById('homeAgentToggle').checked = state.homeAgents !== false;
+  }
   libraryList.querySelectorAll('[data-screen-id]').forEach(button => {
-    if (button.dataset.screenId === id) button.setAttribute('aria-current', 'page');
+    if (button.dataset.screenId === id) { button.setAttribute('aria-current', 'page'); const group = button.closest('details'); if (group) group.open = true; }
     else button.removeAttribute('aria-current');
   });
   const entry = libraryEntries.find(entry => entry.id === id);
@@ -82,7 +148,13 @@ function renderLibrary() {
   const query = document.getElementById('librarySearch').value.trim().toLowerCase();
   const entries = libraryEntries.filter(entry => (entry.group + ' ' + entry.label).toLowerCase().includes(query));
   const groups = [...new Set(entries.map(entry => entry.group))];
-  libraryList.innerHTML = groups.map(group => '<section class="library-group"><h2>' + esc(group) + '</h2>' + entries.filter(entry => entry.group === group).map(entry => '<button type="button" class="library-screen" data-action="library-screen" data-screen-id="' + entry.id + '"><span>' + esc(entry.label) + '</span>' + (entry.modal ? '<small>Sheet</small>' : '') + '</button>').join('') + '</section>').join('') || '<p class="library-no-results">No screens match “' + esc(query) + '”.</p>';
+  const previousOpen = new Set([...libraryList.querySelectorAll('details[open]')].map(el=>el.dataset.group));
+  libraryList.innerHTML = groups.map(group => {
+    const rows = entries.filter(entry=>entry.group === group).map(entry => '<button type="button" class="library-screen" data-action="library-screen" data-screen-id="' + entry.id + '"><span>' + esc(entry.label) + '</span>' + (entry.modal ? '<small>Sheet</small>' : '') + '</button>').join('');
+    if (!isHomepageExploration) return '<section class="library-group"><h2>' + esc(group) + '</h2>' + rows + '</section>';
+    const open = query || previousOpen.has(group) || ['Home','Patients','Work & review'].includes(group);
+    return '<details class="library-group library-disclosure" data-group="' + esc(group) + '"' + (open ? ' open' : '') + '><summary>' + esc(group) + '</summary>' + rows + '</details>';
+  }).join('') || '<p class="library-no-results">No screens match “' + esc(query) + '”.</p>';
   document.getElementById('libraryCount').textContent = libraryEntries.length;
   syncLibrary();
 }
@@ -110,7 +182,7 @@ function openLibraryScreen(id) {
     } else toast('Finish your current recording before opening this example.');
     return;
   }
-  Object.assign(state, { screen: entry.screen, stack: [], modal: entry.modal || null, chatOpen: false, chatVoiceNotice: false, toast: null, search: '', patientSearch: '', assignSearch: '', wardFilter: 'All wards', expandedWorkId: null, collapsedWorkGroups: {}, patientId: null, encounterId: null, sessionId: null, encounterCreationOrigin: 'session', quickAddPatientId: null, encounterDraft: null, workDraft: null }, entry.data || {});
+  Object.assign(state, { screen: entry.screen, homeConcept:null, homeListMode:'appointments', homeReturnScroll:0, stack: [], modal: entry.modal || null, chatOpen: false, chatVoiceNotice: false, toast: null, search: '', patientSearch: '', assignSearch: '', wardFilter: 'All wards', expandedWorkId: null, collapsedWorkGroups: {}, patientId: null, encounterId: null, sessionId: null, encounterCreationOrigin: 'session', quickAddPatientId: null, encounterDraft: null, workDraft: null }, entry.data || {});
   if (entry.sample) {
     // A temporary sample allows direct previews without adding a saved session.
     state.librarySession = { ...seedSessions.find(item => item.id === 's-unlinked'), id: 'library-session', patientId: entry.sample === 'patient' ? 'linda' : null, encounterId: null };
@@ -152,3 +224,12 @@ setLibraryOpen(libraryOpen);
 // Allow a direct review link to an existing library screen.
 const linkedScreen = new URLSearchParams(location.search).get('screen');
 if (libraryEntries.some(entry => entry.id === linkedScreen)) openLibraryScreen(linkedScreen);
+else if (isHomepageExploration) openLibraryScreen('home-apps');
+
+// Comparison controls belong to the preview shell, not the clinician product.
+document.getElementById('homeConceptSelect')?.addEventListener('change', event => {
+  openLibraryScreen(({balanced:'home-balanced',now:'home-now',patient:'home-patient',delegated:'home-delegated',capture:'home-capture',visit:'home-visit',leave:'home-leave',apps:'home-apps',agents:'home-agents',rhythm:'home-prepare',original:'today-appointments'})[event.target.value]);
+});
+document.getElementById('homeAgentToggle')?.addEventListener('change', event => {
+  state.homeAgents = event.target.checked; state.screen = 'today'; state.modal = null; state.chatOpen = false; render();
+});

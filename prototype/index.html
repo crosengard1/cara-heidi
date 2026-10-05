@@ -7,17 +7,18 @@
     <title>Heidi · Screen library</title>
     <link rel="icon" href="./assets/heidi-symbol-bark.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./assets/tokens.css" />
-    <link rel="stylesheet" href="./styles.css" />
-    <link rel="stylesheet" href="./mobile-design-system.css?v=patient-profile-17" />
+    <link rel="stylesheet" href="./styles.css?v=ideas-20261005" />
+    <link rel="stylesheet" href="./mobile-design-system.css?v=ideas-20261005" />
     <link rel="stylesheet" href="./assets/heidi-component-utilities.css?v=6" />
-    <link rel="stylesheet" href="./session-components.css?v=patient-profile-17" />
+    <link rel="stylesheet" href="./session-components.css?v=ideas-20261005" />
     <script defer src="./assets/heidi-components.js?v=5"></script>
     <script defer src="./assets/lucide.min.js"></script>
-    <script defer src="./app.js?v=patient-profile-17"></script>
-    <script defer src="./screen-library.js?v=patient-profile-17"></script>
-    <script defer src="./device-preview.js"></script>
-  <link rel="stylesheet" href="../site-nav.css" /><style>.demo-shell{min-height:calc(100dvh - 60px)}.screen-library{height:calc(100dvh - 60px);top:60px}.device-stage{height:calc(100dvh - 60px)}@media(max-width:760px){.screen-library{top:60px}.library-backdrop:not([hidden]){top:60px}}</style></head>
-  <body><nav class="site-nav" aria-label="CareOS site"><strong>CareOS</strong><div class="site-tabs"><a href="../">Requirements</a><a href="./" aria-current="page">Prototype</a></div></nav>
+    <script defer src="./app.js?v=ideas-20261005"></script>
+    <script defer src="./screen-library.js?v=ideas-20261005"></script>
+    <script defer src="./device-preview.js?v=ideas-20261005"></script>
+  </head>
+  <body class="has-site-nav">
+    <nav class="site-nav" aria-label="CareOS site"><strong>CareOS</strong><a href="https://crosengard1.github.io/cara-heidi/">Requirements</a><a href="./?view=prototype" data-site-tab="prototype" aria-current="page">Prototype</a><a href="./?view=ideas" data-site-tab="ideas">Ideas</a><span>Interactive preview</span></nav>
     <div class="demo-shell">
       <aside id="screenLibrary" class="screen-library" aria-label="Screen library">
         <header class="library-header"><div class="library-brand"><img src="./assets/heidi-symbol-bark.svg" alt="" /><span>Heidi</span></div><button type="button" class="library-close" aria-label="Hide screen library" data-action="toggle-library">×</button></header>
@@ -29,6 +30,7 @@
       <button type="button" class="library-backdrop" data-action="toggle-library" aria-label="Close screen library" hidden></button>
       <main class="device-stage">
         <div class="preview-toolbar"><button id="libraryToggle" class="library-toggle" type="button" data-action="toggle-library" aria-controls="screenLibrary" aria-expanded="true">Screens</button><span id="previewLocation" class="preview-location">Today / Appointments</span><span class="preview-dimensions" title="iPhone 14 Pro logical screen size">393 × 852</span></div>
+        <div class="concept-toolbar" hidden><label for="homeConceptSelect">Home direction</label><select id="homeConceptSelect" aria-label="Home direction"><optgroup label="Current direction"><option value="apps">My day · Apps-owned</option></optgroup><optgroup label="Earlier explorations"><option value="balanced">Patients, work & review</option><option value="agents">Ready for you</option><option value="rhythm">Your day</option><option value="patient">This patient, then next</option><option value="delegated">Heidi is taking care of</option><option value="capture">Get it out of your head</option><option value="visit">Finish this visit</option><option value="leave">Leave today well</option><option value="now">Pick up where you are</option></optgroup></select><span id="homeDependency">Existing prototype</span><label id="homeAgentControl" hidden><input type="checkbox" id="homeAgentToggle" checked /> Agent examples</label></div>
         <div class="device-viewport">
           <div class="phone-frame">
             <div class="phone-screen">
