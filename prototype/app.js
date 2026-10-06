@@ -469,7 +469,7 @@ function resumeSessionButton(s) {
   return huiButton('Resume session','resume-session',{glyph:'waves',variant:'ghost','data-id':s.id});
 }
 function scribeTabs(mode) {
-  return '<div class="today-modes patient-view-modes scribe-view-modes" role="group" aria-label="Scribe view">' + [['appointments','Appointments'],['round','Round'],['sessions','Sessions']].map(([id,label])=>'<button type="button" class="today-mode' + (id === mode ? ' selected' : '') + '" aria-pressed="' + (id === mode) + '" data-action="patient-view" data-id="' + id + '">' + label + '</button>').join('') + '</div>';
+  return '<div class="today-modes patient-view-modes scribe-view-modes" role="group" aria-label="Scribe view">' + [['appointments','Schedule'],['round','List'],['sessions','Sessions']].map(([id,label])=>'<button type="button" class="today-mode' + (id === mode ? ' selected' : '') + '" aria-pressed="' + (id === mode) + '" data-action="patient-view" data-id="' + id + '">' + label + '</button>').join('') + '</div>';
 }
 function renderScribe() {
   return state.patientView === 'sessions' ? renderSessions() : renderIdeaPatients();
