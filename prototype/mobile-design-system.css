@@ -322,6 +322,8 @@
 
 .patient-view-modes { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 3px; margin-bottom: 16px; background: var(--color-background-tertiary); border-radius: var(--radius-xl); }
 .patient-view-modes .today-mode { min-height: 44px; padding-inline: 12px; font: 500 14px/20px var(--font-family-inter); border-radius: var(--radius-lg); }
+.scribe-view-modes { grid-template-columns: 1.3fr 1fr 1fr; }
+.scribe-view-modes .today-mode { padding-inline: 6px; }
 .patient-view-modes .today-mode.selected { background: var(--color-surface); box-shadow: none; }
 .patient-list-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .patient-list-heading h1 { margin: 0; }

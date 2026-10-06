@@ -1,5 +1,6 @@
 /* Review navigation around the prototype; all entries reuse the app's renderers. */
 const libraryEntries = [
+  ...(isHomepageExploration ? [{id:'scribe-explore',group:'Scribe exploration',label:'Scribe · Appointments',screen:'scribe',data:{patientView:'appointments',patientDay:'2026-10-02'}}, ...(isScribeExploration ? [{id:'scribe-round',group:'Scribe exploration',label:'Scribe · Round',screen:'scribe',data:{patientView:'round',patientDay:'2026-10-02'}},{id:'scribe-sessions',group:'Scribe exploration',label:'Sessions · By date',screen:'scribe',data:{patientView:'sessions',sessionGrouping:'date'}},{id:'scribe-sessions-patient',group:'Scribe exploration',label:'Sessions · By patient',screen:'scribe',data:{patientView:'sessions',sessionGrouping:'patient'}},{id:'scribe-directory',group:'Scribe exploration',label:'Patients · Directory',screen:'patients',data:{patientView:'all'}},{id:'scribe-today',group:'Scribe exploration',label:'Today · Quick entry',screen:'today',data:{homeConcept:'apps'}},{id:'scribe-empty',group:'Scribe exploration',label:'Scribe · Empty day',screen:'scribe',data:{patientView:'appointments',patientDay:'2026-10-03'}}] : [])] : []),
   {id:'home-conference-email',group:'Homepage examples',label:'Conference invitation routine',screen:'today',modal:'home-detail',data:{homeConcept:'apps',homeDetailId:'conference-email'}},
   {id:'home-day-summary',group:'Homepage examples',label:'Day summary routine',screen:'today',modal:'home-detail',data:{homeConcept:'apps',homeDetailId:'day-summary'}},
   {id:'home-balanced',group:'Homepage options',label:'10 · Patients, work and review',screen:'today',data:{homeConcept:'balanced'}},
@@ -74,6 +75,7 @@ const libraryEntries = [
 // Keep the current journey prominent; earlier explorations remain searchable.
 if (isHomepageExploration) {
   const sections = {
+    'Scribe exploration': ['scribe-explore','scribe-round','scribe-sessions','scribe-sessions-patient','scribe-directory','scribe-today','scribe-empty'],
     'Home': ['home-apps'],
     'Patients': ['patients-appointments','patients-round','patients-all','patient-history'],
     'Work & review': ['work','todo-detail','agent-detail','home-day-summary','home-conference-email','home-instructions','ask-heidi'],
@@ -96,6 +98,11 @@ const libraryPanel = document.getElementById('screenLibrary');
 const libraryList = document.getElementById('libraryScreens');
 
 function currentLibraryId() {
+  if (isScribeExploration && !state.modal && !state.chatOpen) {
+    if (state.screen === 'scribe') return state.patientView === 'round' ? 'scribe-round' : state.patientView === 'sessions' ? (state.sessionGrouping === 'patient' ? 'scribe-sessions-patient' : 'scribe-sessions') : state.patientDay === '2026-10-03' ? 'scribe-empty' : 'scribe-explore';
+    if (state.screen === 'patients') return 'scribe-directory';
+    if (state.screen === 'today' && state.homeConcept === 'apps') return 'scribe-today';
+  }
   if (isHomepageExploration && state.screen === 'today' && !state.homeConcept && !state.modal && !state.chatOpen) return 'home-apps';
   if (isHomepageExploration && state.screen === 'patients' && !state.modal && !state.chatOpen) return state.patientView === 'round' ? 'patients-round' : state.patientView === 'all' ? 'patients-all' : state.patientDay === '2026-10-03' ? 'patients-empty-day' : 'patients-appointments';
   if (state.homeConcept === 'now' && state.screen === 'history' && !state.modal && !state.chatOpen) return 'home-now-patient';
@@ -157,7 +164,7 @@ function renderLibrary() {
   libraryList.innerHTML = groups.map(group => {
     const rows = entries.filter(entry=>entry.group === group).map(entry => '<button type="button" class="library-screen" data-action="library-screen" data-screen-id="' + entry.id + '"><span>' + esc(entry.label) + '</span>' + (entry.modal ? '<small>Sheet</small>' : '') + '</button>').join('');
     if (!isHomepageExploration) return '<section class="library-group"><h2>' + esc(group) + '</h2>' + rows + '</section>';
-    const open = query || previousOpen.has(group) || ['Home','Patients','Work & review'].includes(group);
+    const open = query || previousOpen.has(group) || ['Scribe exploration','Home','Patients','Work & review'].includes(group);
     return '<details class="library-group library-disclosure" data-group="' + esc(group) + '"' + (open ? ' open' : '') + '><summary>' + esc(group) + '</summary>' + rows + '</details>';
   }).join('') || '<p class="library-no-results">No screens match “' + esc(query) + '”.</p>';
   document.getElementById('libraryCount').textContent = libraryEntries.length;
@@ -180,6 +187,7 @@ function setLibraryOpen(open) {
 function openLibraryScreen(id) {
   const entry = libraryEntries.find(entry => entry.id === id);
   if (!entry) return;
+  if (id === 'scribe-explore' && !isScribeExploration) { location.href = '?view=ideas&flow=scribe&screen=scribe-explore'; return; }
   if (entry.sample && state.recording) {
     if (entry.screen === 'record') {
       const recording = session(state.recordingSessionId);
@@ -188,6 +196,8 @@ function openLibraryScreen(id) {
     return;
   }
   Object.assign(state, { screen: entry.screen, homeConcept:null, homeListMode:'appointments', homeReturnScroll:0, stack: [], modal: entry.modal || null, chatOpen: false, chatVoiceNotice: false, toast: null, search: '', patientSearch: '', assignSearch: '', wardFilter: 'All wards', expandedWorkId: null, collapsedWorkGroups: {}, patientId: null, encounterId: null, sessionId: null, encounterCreationOrigin: 'session', quickAddPatientId: null, encounterDraft: null, workDraft: null }, entry.data || {});
+  if (isScribeExploration && entry.screen === 'sessions') { state.screen = 'scribe'; state.patientView = 'sessions'; }
+  if (isScribeExploration && entry.screen === 'patients' && ['appointments','round'].includes(entry.data?.patientView)) state.screen = 'scribe';
   if (entry.sample) {
     // A temporary sample allows direct previews without adding a saved session.
     state.librarySession = { ...seedSessions.find(item => item.id === 's-unlinked'), id: 'library-session', patientId: entry.sample === 'patient' ? 'linda' : null, encounterId: null };

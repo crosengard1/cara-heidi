@@ -1,13 +1,14 @@
 /* Local, fictional product prototype. No clinical data or EHR service is connected. */
 const isHomepageExploration = new URLSearchParams(location.search).get('view') === 'ideas';
+const isScribeExploration = isHomepageExploration && new URLSearchParams(location.search).get('flow') === 'scribe';
 document.body.classList.toggle('has-homepage-explorations', isHomepageExploration);
 const conceptToolbar = document.querySelector('.concept-toolbar');
-if (conceptToolbar) conceptToolbar.hidden = !isHomepageExploration;
+if (conceptToolbar) conceptToolbar.hidden = !isHomepageExploration || isScribeExploration;
 document.querySelectorAll('[data-site-tab]').forEach(link => {
   if (link.dataset.siteTab === (isHomepageExploration ? 'ideas' : 'prototype')) link.setAttribute('aria-current', 'page');
   else link.removeAttribute('aria-current');
 });
-const STORAGE_KEY = isHomepageExploration ? 'heidi-homepage-explorations-v1' : 'heidi-today-concept-v2';
+const STORAGE_KEY = isScribeExploration ? 'heidi-scribe-exploration-v1' : isHomepageExploration ? 'heidi-homepage-explorations-v1' : 'heidi-today-concept-v2';
 const patients = {
   linda: { name: 'Linda Wong', dob: '20 Apr 1985', initials: 'LW', avatar: 'green', identifier: 'HW-10482' },
   amelia: { name: 'Amelia Grant', dob: '14 Feb 1979', initials: 'AG', avatar: 'blue', identifier: 'HW-20816' },
@@ -215,6 +216,10 @@ function topbar(title, details = false) {
   return '<header class="topbar">' + iconButton('left', 'Go back', 'back') + '<span class="back-title">' + esc(title) + '</span><div class="topbar-right">' + (details ? iconButton('more', 'Session details', 'open-session-details') : iconButton('home', 'Go to Today', 'go-today')) + '</div></header>';
 }
 function nav() {
+  if (isScribeExploration) {
+    const active = ['today','scribe','patients','tasks'].includes(state.screen) ? state.screen : state.screen === 'history' ? 'patients' : state.screen === 'sessions' ? 'scribe' : state.stack.findLast(item => ['scribe','patients','today'].includes(item.screen))?.screen || 'scribe';
+    return '<div class="nav-shell"><nav class="nav-dock" aria-label="Main navigation">' + [['today','home','Today'],['scribe','waves','Scribe'],['patients','user','Patients'],['tasks','check','Work']].map(([screen,glyph,label])=>'<button type="button" class="nav-item ' + (active === screen ? 'active' : '') + '" aria-current="' + (active === screen ? 'page' : 'false') + '" data-action="nav-' + screen + '">' + icon(glyph) + '<span>' + label + '</span></button>').join('') + '</nav></div>';
+  }
   const items = [['today','home','Today'], ['patients','user','Patients'], ['sessions','waves','Sessions'], ['tasks','check','Work']];
   return '<div class="nav-shell"><nav class="nav-dock" aria-label="Main navigation">' + items.map(([screen, glyph, label]) => '<button type="button" class="nav-item ' + (state.screen === screen || (screen === 'today' && state.screen === 'worklist') || (isHomepageExploration && screen === 'patients' && (['history','encounter'].includes(state.screen) || (state.screen === 'record' && state.patientId))) ? 'active' : '') + '" data-action="nav-' + screen + '">' + icon(glyph) + '<span>' + label + '</span></button>').join('') + '</nav></div>';
 }
@@ -463,18 +468,38 @@ function sessionDeliverySummary(s) {
 function resumeSessionButton(s) {
   return huiButton('Resume session','resume-session',{glyph:'waves',variant:'ghost','data-id':s.id});
 }
-function renderSessions() {
-  return [
-    topbar(), '<div class="screen-heading"><h1>Sessions</h1>' + (isHomepageExploration ? '<p class="patient-provenance">Example note statuses · No EHR or sharing connection</p>' : '') + '</div>',
-    '<div class="section-heading"><h2>Recent sessions</h2><span>' + state.sessions.length + ' total</span></div>',
-    '<div class="card">' + [...state.sessions].sort((a, b) => sessionRecency(b) - sessionRecency(a)).map(s => {
+function scribeTabs(mode) {
+  return '<div class="today-modes patient-view-modes scribe-view-modes" role="group" aria-label="Scribe view">' + [['appointments','Appointments'],['round','Round'],['sessions','Sessions']].map(([id,label])=>'<button type="button" class="today-mode' + (id === mode ? ' selected' : '') + '" aria-pressed="' + (id === mode) + '" data-action="patient-view" data-id="' + id + '">' + label + '</button>').join('') + '</div>';
+}
+function renderScribe() {
+  return state.patientView === 'sessions' ? renderSessions() : renderIdeaPatients();
+}
+function renderSessionRow(s) {
       const p = s.patientId && patients[s.patientId], e = s.encounterId && encounters[s.encounterId];
       const contextLabel = e ? 'In encounter' : p ? 'Patient added' : 'Add patient';
       const contextDescription = e ? 'Change encounter for ' + s.title : p ? 'Add or change encounter for ' + s.title : 'Add a patient to ' + s.title;
       return '<div class="session-item"><button type="button" class="session-row" data-action="open-session" data-id="' + esc(s.id) + '">' + (p ? initials(p) : '<span class="avatar blue">' + icon('waves') + '</span>') + '<span class="row-main"><span class="row-title">' + esc(s.title) + '</span><span class="row-sub">' + esc(s.date) + (p ? ' · ' + esc(p.name) : '') + '</span>' + (e ? '<span class="row-third">' + esc(e.title) + ' · ' + esc(e.identifier) + '</span>' : '') + sessionDeliverySummary(s) + '</span><span class="row-arrow">' + icon('chevron') + '</span></button><div class="session-item-footer">' + (isHomepageExploration ? resumeSessionButton(s) : '') + '<button type="button" class="session-context-button" data-action="configure-session" data-id="' + esc(s.id) + '" aria-label="' + esc(contextDescription) + '">' + esc(contextLabel) + ' ' + icon('chevron') + '</button></div></div>';
-    }).join('') + '</div>'
-  ].join('');
 }
+function renderSessions() {
+  const ordered = [...state.sessions].sort((a,b) => sessionRecency(b) - sessionRecency(a));
+  const header = topbar() + (isScribeExploration ? '<div class="screen-heading"><h1>Scribe</h1></div>' + scribeTabs('sessions') : '<div class="screen-heading"><h1>Sessions</h1>' + (isHomepageExploration ? '<p class="patient-provenance">Example note statuses · No EHR or sharing connection</p>' : '') + '</div>');
+  if (!isScribeExploration) return header + '<div class="section-heading"><h2>Recent sessions</h2><span>' + ordered.length + ' total</span></div><div class="card">' + ordered.map(renderSessionRow).join('') + '</div>';
+  const byPatient = state.sessionGrouping === 'patient';
+  const groups = new Map();
+  ordered.forEach(s => {
+    const date = new Date(s.createdAt || s.occurredAt || sessionRecency(s));
+    const key = byPatient ? (patients[s.patientId] ? s.patientId : 'unassigned') : (Number.isNaN(date.getTime()) ? 'unknown' : date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0'));
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(s);
+  });
+  const entries = [...groups];
+  if (byPatient) entries.sort(([a],[b]) => a === 'unassigned' ? 1 : b === 'unassigned' ? -1 : patients[a].name.localeCompare(patients[b].name));
+  else entries.sort(([a],[b]) => b.localeCompare(a));
+  return header + '<div class="section-heading"><h2>All sessions</h2><span>' + ordered.length + ' total</span></div>' +
+    '<div class="today-modes patient-view-modes" role="group" aria-label="Group sessions by">' + [['date','By date'],['patient','By patient']].map(([id,label]) => '<button type="button" class="today-mode' + ((byPatient ? 'patient' : 'date') === id ? ' selected' : '') + '" aria-pressed="' + ((byPatient ? 'patient' : 'date') === id) + '" data-action="session-grouping" data-id="' + id + '">' + label + '</button>').join('') + '</div>' +
+    (entries.length ? entries.map(([key,items]) => '<section><div class="section-heading"><h2>' + esc(byPatient ? key === 'unassigned' ? 'Unassigned' : patients[key].name + ' · ' + patients[key].identifier : key === 'unknown' ? 'Date not available' : prettyDate(key)) + '</h2><span>' + items.length + '</span></div><div class="card">' + items.map(renderSessionRow).join('') + '</div></section>').join('') : '<div class="today-empty">No sessions yet. Use + to start a session.</div>');
+}
+
 function renderTasks() {
   return topbar() + '<div class="screen-heading work-heading"><h1>Work</h1><p>Your to-dos and work with Heidi.</p></div>' +
     [['todo', 'To do'], ['progress', 'Work in progress'], ['done', 'Done']].map(([status, label]) => {
@@ -501,12 +526,12 @@ function renderWorkChange(focusSelector, revealFocus = false) {
   document.querySelector(focusSelector)?.focus({ preventScroll: !revealFocus });
 }
 function renderIdeaPatients() {
-  const mode = state.patientView || 'appointments', day = state.patientDay || '2026-10-02';
+  const mode = isScribeExploration && state.screen === 'patients' ? 'all' : state.patientView || 'appointments', day = state.patientDay || '2026-10-02';
   const query = state.patientSearch.trim().toLowerCase();
   const matches = id => (patients[id].name + ' ' + patients[id].identifier).toLowerCase().includes(query);
   const modes = [['appointments','Appointments'],['round','Round']];
   const switcher = '<div class="today-modes patient-view-modes" role="group" aria-label="Patient view">' + modes.map(([id,label]) => '<button type="button" class="today-mode' + (id === mode ? ' selected' : '') + '" aria-pressed="' + (id === mode) + '" data-action="patient-view" data-id="' + id + '">' + label + '</button>').join('') + '</div>';
-  const header = topbar() + '<div class="screen-heading patient-list-heading"><h1>' + (mode === 'all' ? 'All patients' : 'Patients') + '</h1><button type="button" class="text-action" data-action="patient-directory">' + (mode === 'all' ? 'Back to list' : 'View all') + '</button></div>' + (mode === 'all' ? '' : switcher) + '<input class="search-input" id="patientsTabSearch" type="search" placeholder="Search name or Heidi ID" aria-label="Search patients" value="' + esc(state.patientSearch) + '" />';
+  const header = isScribeExploration ? topbar() + '<div class="screen-heading"><h1>' + (mode === 'all' ? 'Patients' : 'Scribe') + '</h1></div>' + (mode === 'all' ? '' : scribeTabs(mode)) + '<input class="search-input" id="patientsTabSearch" type="search" placeholder="Search name or Heidi ID" aria-label="Search patients" value="' + esc(state.patientSearch) + '" />' : topbar() + '<div class="screen-heading patient-list-heading"><h1>' + (mode === 'all' ? 'All patients' : 'Patients') + '</h1><button type="button" class="text-action" data-action="patient-directory">' + (mode === 'all' ? 'Back to list' : 'View all') + '</button></div>' + (mode === 'all' ? '' : switcher) + '<input class="search-input" id="patientsTabSearch" type="search" placeholder="Search name or Heidi ID" aria-label="Search patients" value="' + esc(state.patientSearch) + '" />';
   if (mode === 'appointments') {
     const entries = Object.entries(encounters).filter(([,e])=>e.kind === 'Appointment encounter' && e.startedAt?.slice(0,10) === day && matches(e.patientId)).sort((a,b)=>a[1].startedAt.localeCompare(b[1].startedAt));
     return header + patientDateControl(day) + '<p class="patient-provenance">Example schedule · 2 October has 10 appointments</p><div class="section-heading"><h2>' + esc(prettyDate(day)) + '</h2><span>' + entries.length + ' appointments</span></div>' + (entries.length ? '<div class="card">' + entries.map(([id,e])=>homePatientRow({encounterId:id,time:e.startedAt.slice(11,16) || '—'},false)).join('') + '</div>' : '<div class="today-empty">' + (query ? 'No appointments match this search.' : 'No appointments on this date.') + '</div>');
@@ -778,7 +803,7 @@ function formatElapsed() {
 let ticker = null;
 function updateTicker() { clearInterval(ticker); if (state.recording && !state.paused) ticker = setInterval(() => { const el = document.getElementById('recordTime'); if (el) el.textContent = formatElapsed(); }, 500); }
 function render() {
-  const pages = { today: renderToday, worklist: renderWorklist, sessions: renderSessions, tasks: renderTasks, patients: renderPatients, encounter: renderEncounter, history: renderHistory, session: renderSession, record: renderRecord, search: renderSearch };
+  const pages = { scribe: renderScribe, today: renderToday, worklist: renderWorklist, sessions: renderSessions, tasks: renderTasks, patients: renderPatients, encounter: renderEncounter, history: renderHistory, session: renderSession, record: renderRecord, search: renderSearch };
   const modals = { 'home-detail':renderHomeDetail, 'patient-details':renderPatientDetails, 'edit-patient-details':renderPatientDetailsEdit, 'edit-patient-context':renderPatientContextEdit, 'new-session-context': renderNewSessionContext, 'document-actions': renderDocumentActions, 'dictate-session': renderSessionDictation, 'documents': renderDocumentPicker, 'new-document': renderNewDocument, 'edit-document': renderEditDocument, 'session-details': renderSessionDetails, 'patient-picker': renderPatientPicker, 'new-patient': renderNewPatient, 'encounter-picker': renderEncounterPicker, 'new-encounter': renderNewEncounter, 'quick-add': renderQuickAdd, 'encounter-patient': renderEncounterPatientPicker, 'new-work': renderNewWork };
   document.getElementById('app').classList.toggle('session-focused', state.screen === 'session');
   document.getElementById('app').innerHTML = '<div class="app-scroll">' + pages[state.screen]() + '</div>' + (state.screen === 'session' ? '' : nav()) + askBar() + (state.recording && state.screen !== 'record' ? '<button type="button" class="mini-player" data-action="return-record">' + icon('waves') + '<span>Recording in progress</span><strong>' + formatElapsed() + '</strong></button>' : '') + (modals[state.modal] ? modals[state.modal]() : '') + (state.chatOpen ? renderChat() : '') + (state.toast ? '<div class="toast" role="status">' + esc(state.toast) + '</div>' : '');
@@ -794,7 +819,7 @@ function render() {
   document.dispatchEvent(new Event('prototype-render'));
 }
 function navigate(screen, data) {
-  state.stack.push({ screen: state.screen, patientId: state.patientId, encounterId: state.encounterId, sessionId: state.sessionId, worklistType: state.worklistType, wardFilter: state.wardFilter });
+  state.stack.push({ screen: state.screen, patientId: state.patientId, encounterId: state.encounterId, sessionId: state.sessionId, worklistType: state.worklistType, wardFilter: state.wardFilter, ...(isScribeExploration ? {patientView:state.patientView,patientDay:state.patientDay,patientSearch:state.patientSearch,returnScroll:document.querySelector('.app-scroll')?.scrollTop || 0} : {}) });
   state.screen = screen;
   Object.assign(state, data || {});
   if (screen === 'session' && session(state.sessionId)) session(state.sessionId).workspaceView = 'documents';
@@ -865,10 +890,11 @@ document.addEventListener('click', ev => {
   if (a === 'balanced-work') { navigate('tasks',{expandedWorkId:id}); return; }
   if (a === 'balanced-ask') { state.chatContext = homePatientName() + ' · Morning ward review'; state.chatDraft = 'Help me finish the outstanding work for ' + homePatientName() + '. Review the source session and suggest which preparation you can do; leave clinical decisions for me.'; state.chatOpen = true; render(); document.getElementById('chatInput')?.focus(); return; }
   if (a === 'home-now-list') { state.homeNowList = id; const scroll = document.querySelector('.app-scroll').scrollTop; render(); document.querySelector('.app-scroll').scrollTop = scroll; document.querySelector('[data-action="home-now-list"][data-id="' + id + '"]')?.focus({preventScroll:true}); return; }
-  if (a === 'home-now-open-list') { navigate('patients', {patientView:state.homeNowList || 'appointments',patientSearch:''}); return; }
-  if (a === 'home-now-round') { navigate('patients', {patientView:'round'}); return; }
+  if (a === 'home-now-open-list') { navigate(isScribeExploration ? 'scribe' : 'patients', {patientView:state.homeNowList || 'appointments',patientSearch:''}); return; }
+  if (a === 'home-now-round') { navigate(isScribeExploration ? 'scribe' : 'patients', {patientView:'round'}); return; }
   if (a === 'patient-directory') { if (state.patientView === 'all') state.patientView = state.patientDirectoryReturn || 'appointments'; else { state.patientDirectoryReturn = state.patientView || 'appointments'; state.patientView = 'all'; } state.patientSearch = ''; render(); document.querySelector('[data-action="patient-directory"]')?.focus({preventScroll:true}); return; }
-  if (a === 'patient-view') { state.patientView = id; state.patientSearch = ''; render(); document.querySelector('[data-action="patient-view"][data-id="' + id + '"]')?.focus(); return; }
+  if (a === 'session-grouping') { state.sessionGrouping = id; render(); document.querySelector('[data-action="session-grouping"][data-id="' + id + '"]')?.focus({preventScroll:true}); return; }
+  if (a === 'patient-view') { if (isScribeExploration) state.screen = 'scribe'; state.patientView = id; state.patientSearch = ''; render(); document.querySelector('[data-action="patient-view"][data-id="' + id + '"]')?.focus(); return; }
   if (a === 'patient-day') { const day = new Date((state.patientDay || '2026-10-02') + 'T12:00:00Z'); day.setUTCDate(day.getUTCDate() + Number(id)); state.patientDay = day.toISOString().slice(0,10); render(); document.querySelector('[data-action="patient-day"][data-id="' + id + '"]')?.focus(); return; }
   if (a === 'home-visit-stage') { state.homeVisitStage = id; render(); document.querySelector('[data-action="home-visit-stage"][data-id="' + id + '"]')?.focus({preventScroll:true}); return; }
   if (a === 'home-phase') { state.homePhase = id; render(); document.querySelector('[data-action="home-phase"][data-id="' + id + '"]')?.focus({preventScroll:true}); return; }
@@ -880,7 +906,7 @@ document.addEventListener('click', ev => {
     navigate('encounter', {encounterId:id,patientId:e.patientId});
     newSession(id); return;
   }
-  if (a === 'home-all-patients') { navigate('patients', {patientView:state.homeListMode === 'round' ? 'round' : 'appointments',patientDay:'2026-10-02',patientSearch:'',wardFilter:'All wards'}); return; }
+  if (a === 'home-all-patients') { navigate(isScribeExploration ? 'scribe' : 'patients', {patientView:state.homeListMode === 'round' ? 'round' : 'appointments',patientDay:'2026-10-02',patientSearch:'',wardFilter:'All wards'}); return; }
   if (a === 'home-task') { const scroll = document.querySelector('.app-scroll').scrollTop; state.homeDone = state.homeDone || {}; state.homeDone[id] = !state.homeDone[id]; render(); document.querySelector('.app-scroll').scrollTop = scroll; document.querySelector('[data-action="home-task"][data-id="' + id + '"]')?.focus({preventScroll:true}); return; }
   if (a === 'home-detail') { state.homeReturnScroll = document.querySelector('.app-scroll').scrollTop; state.homeDetailId = id; state.modal = 'home-detail'; render(); return; }
   if (a === 'home-source') { const source = session('s-linda-1'); if (!source) return; state.modal = null; navigate('session', {sessionId:source.id,patientId:source.patientId,encounterId:source.encounterId}); return; }
@@ -965,6 +991,8 @@ document.addEventListener('click', ev => {
   if (a === 'close-chat') { state.chatOpen = false; render(); return; }
   if (a === 'close-modal' && ev.target.closest('.sheet') && target.classList.contains('sheet-backdrop')) return;
   if (a === 'nav-today' || a === 'go-today') { state.stack = []; state.screen = 'today'; render(); return; }
+  if (a === 'nav-scribe') { state.stack = []; state.screen = 'scribe'; if (state.patientView === 'all') state.patientView = 'appointments'; render(); return; }
+  if (a === 'nav-sessions' && isScribeExploration) { state.stack = []; state.screen = 'scribe'; state.patientView = 'sessions'; render(); return; }
   if (a === 'nav-sessions') { state.stack = []; state.screen = 'sessions'; render(); return; }
   if (a === 'nav-tasks') { state.stack = []; state.screen = 'tasks'; render(); return; }
   if (a === 'nav-patients') { state.stack = []; state.screen = 'patients'; render(); return; }
@@ -979,7 +1007,7 @@ document.addEventListener('click', ev => {
     state.collapsedWorkGroups[nextStatus] = false;
     save(); renderWorkChange('[data-action="toggle-work-done"][data-id="' + id + '"]', ev.detail === 0); return;
   }
-  if (a === 'back') { const last = state.stack.pop(); if (last) Object.assign(state, last); else state.screen = 'today'; render(); return; }
+  if (a === 'back') { const last = state.stack.pop(); if (last) Object.assign(state, last); else state.screen = 'today'; render(); if (isScribeExploration) document.querySelector('.app-scroll').scrollTop = last?.returnScroll || 0; return; }
   if (a === 'search') { state.search = ''; navigate('search'); return; }
   if (a === 'open-worklist') { navigate('worklist', { worklistType: target.dataset.type, wardFilter: 'All wards' }); return; }
   if (a === 'filter-ward') { state.wardFilter = target.dataset.filter; render(); return; }
